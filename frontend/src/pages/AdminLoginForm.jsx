@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Shield } from "lucide-react";
 import viewIcon from "../assets/view.png";
 import hideIcon from "../assets/hide.png";
-import FullscreenLoader from "../components/Loader";
+import FullscreenLoader from "../components/common/Loader";
 
 import { loginUser } from "../api/UserLoginAPI";
 
@@ -32,11 +32,7 @@ export default function AdminLogin() {
 
       // ROLE CHECK (VERY IMPORTANT)
       if (data.user.role !== "admin") {
-        setForm({
-          username: "",
-          password: "" 
-        });
-        return;
+        window.location.href = "/unauthorized"
       }
 
       // Redirect to admin dashboard

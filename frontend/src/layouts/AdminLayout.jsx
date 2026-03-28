@@ -1,6 +1,6 @@
 import { useState } from "react";
-import AdminSidebar from "../components/AdminSidebar";
-import Header from "../components/Header";
+import AdminSidebar from "../components/layout/AdminSidebar";
+import Header from "../components/layout/Header";
 
 export default function UserLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

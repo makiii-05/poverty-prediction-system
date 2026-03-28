@@ -9,7 +9,7 @@ import {
   LayoutDashboard,
   SearchCheck
 } from "lucide-react";
-import AuthModal from "../components/AuthModal";
+import AuthModal from "../components/auth/AuthModal";
 
 export default function LandingPage() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);

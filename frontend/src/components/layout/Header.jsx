@@ -1,8 +1,8 @@
 import { Shield, LogOut, Menu, Settings, ChevronDown } from "lucide-react";
-import { getCurrentUser } from "../api/UserLoginAPI";
+import { getCurrentUser } from "../../api/UserLoginAPI";
 import { useEffect, useRef, useState } from "react";
-import FullscreenLoader from "../components/Loader";
-import ConfirmModal from "./ConfirmModal";
+import FullscreenLoader from "../common/Loader";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function Header({ onMenuClick }) {
   const [user, setUser] = useState(null);

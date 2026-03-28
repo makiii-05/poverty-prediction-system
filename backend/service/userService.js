@@ -55,6 +55,7 @@ const UserService = {
         if (!isMatch) {
             throw new Error("Invalid username or password");
         }
+
         return {
             id: user.id,
             name: user.name,

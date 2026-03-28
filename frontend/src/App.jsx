@@ -26,7 +26,7 @@ import SystemMonitoring from "./pages/admin/SystemMonitoring";
 import UserManagement from "./pages/admin/UserManagement";
 
 // Components
-import UnauthorizedPage from "./components/UnauthorizedPage";
+import UnauthorizedPage from "./components/pages/UnauthorizedPage";
 
 // Secure Route
 import AdminRoute from "./routes/AdminRoute";

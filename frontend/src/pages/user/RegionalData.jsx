@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import UserLayout from "../../layouts/UserLayout";
 import { getAllData, filterData } from "../../api/DataAPI";
-import Search from "../../components/Search";
-import RegionalDataTable from "../../components/RegionalDataTable";
-import RegionalDataCards from "../../components/RegionalDataCard";
+import Search from "../../components/common/Search";
+import RegionalDataTable from "../../components/regional-data/RegionalDataTable";
+import RegionalDataCards from "../../components/regional-data/RegionalDataCard";
 
 export default function RegionalData() {
   const [data, setData] = useState([]);
