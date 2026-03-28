@@ -1,0 +1,88 @@
+import {
+  LayoutDashboard,
+  MapPin,
+  Upload,
+  Database,
+  Activity,
+  Settings,
+  BarChart,
+  Users,
+  X,
+} from "lucide-react";
+import { NavLink } from "react-router-dom";
+
+export default function AdminSidebar({ isOpen, onClose }) {
+  const menu = [
+    { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+    { label: "Dataset Upload", icon: Upload, path: "/admin/dataset-upload" },
+    { label: "Data Management", icon: Database, path: "/admin/data-management" },
+    { label: "Model Training", icon: Activity, path: "/admin/model-training" },
+    { label: "Indicators", icon: Settings, path: "/admin/indicators" },
+    { label: "Regions", icon: MapPin, path: "/admin/regions" },
+    { label: "Monitoring", icon: BarChart, path: "/admin/monitoring" },
+    { label: "Users", icon: Users, path: "/admin/users" },
+  ];
+
+  return (
+    <>
+      {/* Overlay for mobile/tablet */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 z-50 h-screen w-[260px] border-r bg-white px-4 py-6 transition-transform duration-300 lg:static lg:z-auto lg:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="mb-6 flex items-center justify-between lg:block">
+          <p className="px-3 text-xs font-semibold tracking-wide text-slate-500">
+            ADMIN MENU
+          </p>
+
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2">
+          {menu.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition ${
+                    isActive
+                      ? "bg-[#003B95] text-white shadow-sm"
+                      : "text-slate-700 hover:bg-[#E8EEF9]"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={`h-5 w-5 ${
+                        isActive ? "text-white" : "text-slate-500"
+                      }`}
+                    />
+                    {item.label}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+        </div>
+      </aside>
+    </>
+  );
+}
