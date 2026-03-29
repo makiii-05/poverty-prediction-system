@@ -28,7 +28,7 @@ export const loginUser = async (username, password) => {
 
   const data = await res.json();
 
-  // 🔥 Handle rate limit specifically
+  // Handle rate limit specifically
   if (res.status === 429) {
     throw new Error(data.message || "Too many login attempts");
   }
