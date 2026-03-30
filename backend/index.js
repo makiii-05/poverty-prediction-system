@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 // Routes
 const userRoutes = require("./routes/userRoute");
 const dataRoute = require("./routes/dataRoute"); 
+const predictionRoute = require("./routes/predictionRoute");
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/data", dataRoute);
+app.use("/api/prediction", predictionRoute);
 
 // Test route
 app.get("/", (req, res) => {

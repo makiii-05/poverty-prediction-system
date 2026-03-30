@@ -156,8 +156,8 @@ export default function AuthModal({ isOpen, onClose }) {
 
       onClose();
 
-      if (data.user.role === "admin") {
-        window.location.href = "/admin/dashboard";
+      if (data.user.role !== "user") {
+        window.location.href = "/unauthorized";
       } else {
         window.location.href = "/dashboard";
       }

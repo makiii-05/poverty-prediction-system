@@ -11,7 +11,7 @@ import LandingPage from "./pages/LandingPage";
 // User pages
 import UserDashboard from "./pages/user/UserDashboard";
 import RegionalData from "./pages/user/RegionalData";
-import Predictions from "./pages/user/Predictions";
+import UserPredictions from "./pages/user/UserPrediction";
 import Visualization from "./pages/user/Visualization";
 import Reports from "./pages/user/Reports" ;
 
@@ -46,7 +46,7 @@ function App() {
         {/* User Pages */}
         <Route path="/dashboard" element={<UserRoute><UserDashboard /></UserRoute>} />
         <Route path="/data" element={<UserRoute><RegionalData /></UserRoute>} />
-        <Route path="/predictions" element={<UserRoute><Predictions /></UserRoute>} />
+        <Route path="/predictions" element={<UserRoute><UserPredictions /></UserRoute>} />
         <Route path="/visualization" element={<UserRoute><Visualization /></UserRoute>} />
         <Route path="/reports" element={<UserRoute><Reports /></UserRoute>} />
 

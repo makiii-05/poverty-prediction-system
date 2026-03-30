@@ -3,8 +3,12 @@ import pandas as pd
 
 def load_and_prepare_data():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(BASE_DIR, "dataset", "MAIN_DATASET.xlsx")
+    ROOT_DIR = os.path.dirname(BASE_DIR)  # go up from classification -> ml-service
+
+    file_path = os.path.join(ROOT_DIR, "dataset", "MAIN_DATASET.xlsx")
     file_path = os.path.normpath(file_path)
+
+    print("Using file:", file_path)
 
     df = pd.read_excel(file_path)
 
@@ -54,6 +58,9 @@ def load_and_prepare_data():
     X = df.drop(columns=["poverty_level", poverty_col, "region_name"])
 
     # Convert categorical to numeric
-    X = pd.get_dummies(X, drop_first=True, dtype=int)
+    X = pd.get_dummies(X, drop_first=False, dtype=int)
+
+    print("Feature columns:")
+    print(X.columns.tolist())
 
     return X, y
