@@ -47,10 +47,12 @@ function getTimestamp() {
 
 function normalizeColumns(row) {
   const normalized = {};
+
   for (const key in row) {
     const cleanKey = String(key).trim().toLowerCase().replace(/\s+/g, "_");
     normalized[cleanKey] = row[key];
   }
+
   return normalized;
 }
 
@@ -83,15 +85,47 @@ function writeExcelFile(rows, filePath) {
   xlsx.writeFile(workbook, filePath);
 }
 
-function removeDuplicates(rows) {
-  const seen = new Set();
+function normalizeRegion(region) {
+  return String(region || "").trim().toLowerCase();
+}
 
-  return rows.filter((row) => {
-    const key = `${row.region}-${row.year}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+function normalizeYear(year) {
+  return Number(year || 0);
+}
+
+function sortRowsByRegionYear(rows) {
+  return rows.sort((a, b) => {
+    const regionA = normalizeRegion(a.region);
+    const regionB = normalizeRegion(b.region);
+
+    if (regionA < regionB) return -1;
+    if (regionA > regionB) return 1;
+
+    const yearA = normalizeYear(a.year);
+    const yearB = normalizeYear(b.year);
+
+    return yearA - yearB;
   });
+}
+
+function pruneBackups(folder, extension, keepCount = 10) {
+  if (!fs.existsSync(folder)) return;
+
+  const files = fs
+    .readdirSync(folder)
+    .filter((file) => file.endsWith(extension))
+    .map((file) => ({
+      name: file,
+      fullPath: path.join(folder, file),
+      mtime: fs.statSync(path.join(folder, file)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime);
+
+  const filesToDelete = files.slice(keepCount);
+
+  for (const file of filesToDelete) {
+    fs.unlinkSync(file.fullPath);
+  }
 }
 
 function backupCurrentDataset() {
@@ -103,6 +137,8 @@ function backupCurrentDataset() {
   const backupPath = path.join(DATASET_BACKUP_DIR, backupName);
 
   fs.copyFileSync(DATASET_PATH, backupPath);
+  pruneBackups(DATASET_BACKUP_DIR, ".xlsx", 10);
+
   return backupPath;
 }
 
@@ -115,6 +151,8 @@ function backupCurrentModel() {
   const backupPath = path.join(MODEL_BACKUP_DIR, backupName);
 
   fs.copyFileSync(MODEL_PATH, backupPath);
+  pruneBackups(MODEL_BACKUP_DIR, ".pkl", 10);
+
   return backupPath;
 }
 
@@ -171,7 +209,9 @@ const replaceDataset = async (req, res) => {
     const datasetBackupPath = backupCurrentDataset();
     const modelBackupPath = backupCurrentModel();
 
-    writeExcelFile(uploadedRows, DATASET_PATH);
+    const sortedRows = sortRowsByRegionYear(uploadedRows);
+
+    writeExcelFile(sortedRows, DATASET_PATH);
     fs.unlinkSync(req.file.path);
 
     const trainingOutput = await runTraining();
@@ -179,62 +219,7 @@ const replaceDataset = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Dataset replaced and model retrained successfully.",
-      totalRows: uploadedRows.length,
-      datasetBackupPath,
-      modelBackupPath,
-      trainingOutput,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.toString(),
-    });
-  }
-};
-
-const combineDataset = async (req, res) => {
-  try {
-    ensureDirs();
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded.",
-      });
-    }
-
-    const uploadedRows = readExcelFile(req.file.path);
-    const validationError = validateColumns(uploadedRows);
-
-    if (validationError) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({
-        success: false,
-        message: validationError,
-      });
-    }
-
-    let existingRows = [];
-    if (fs.existsSync(DATASET_PATH)) {
-      existingRows = readExcelFile(DATASET_PATH);
-    }
-
-    const datasetBackupPath = backupCurrentDataset();
-    const modelBackupPath = backupCurrentModel();
-
-    const combinedRows = removeDuplicates([...existingRows, ...uploadedRows]);
-
-    writeExcelFile(combinedRows, DATASET_PATH);
-    fs.unlinkSync(req.file.path);
-
-    const trainingOutput = await runTraining();
-
-    return res.status(200).json({
-      success: true,
-      message: "Dataset combined and model retrained successfully.",
-      oldRows: existingRows.length,
-      uploadedRows: uploadedRows.length,
-      finalRows: combinedRows.length,
+      totalRows: sortedRows.length,
       datasetBackupPath,
       modelBackupPath,
       trainingOutput,
@@ -260,7 +245,6 @@ const rollbackDataset = async (req, res) => {
       });
     }
 
-    // backup current dataset/model before rollback too
     const currentDatasetBackup = backupCurrentDataset();
     const currentModelBackup = backupCurrentModel();
 
@@ -270,7 +254,8 @@ const rollbackDataset = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Rollback completed successfully. Dataset restored and model retrained.",
+      message:
+        "Rollback completed successfully. Dataset restored and model retrained.",
       restoredFrom: latestDatasetBackup,
       currentDatasetBackup,
       currentModelBackup,
@@ -311,7 +296,6 @@ const listBackups = async (req, res) => {
 
 module.exports = {
   replaceDataset,
-  combineDataset,
   rollbackDataset,
   listBackups,
 };

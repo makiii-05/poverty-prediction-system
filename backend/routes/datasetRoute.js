@@ -4,10 +4,9 @@ const path = require("path");
 
 const {
   replaceDataset,
-  combineDataset,
   rollbackDataset,
   listBackups,
-} = require("../controllers/DatasetController");
+} = require("../controller/datasetController");
 
 const router = express.Router();
 
@@ -25,7 +24,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.post("/replace", upload.single("file"), replaceDataset);
-router.post("/combine", upload.single("file"), combineDataset);
 router.post("/rollback", rollbackDataset);
 router.get("/backups", listBackups);
 
