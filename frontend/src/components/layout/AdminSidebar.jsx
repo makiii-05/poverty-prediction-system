@@ -1,10 +1,7 @@
 import {
   LayoutDashboard,
-  MapPin,
-  Upload,
+  TrendingUp,
   Database,
-  Activity,
-  Settings,
   BarChart,
   Users,
   X,
@@ -14,11 +11,8 @@ import { NavLink } from "react-router-dom";
 export default function AdminSidebar({ isOpen, onClose }) {
   const menu = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { label: "Dataset Upload", icon: Upload, path: "/admin/dataset-upload" },
-    { label: "Data Management", icon: Database, path: "/admin/data-management" },
-    { label: "Model Training", icon: Activity, path: "/admin/model-training" },
-    { label: "Indicators", icon: Settings, path: "/admin/indicators" },
-    { label: "Regions", icon: MapPin, path: "/admin/regions" },
+    { label: "Predict", icon: TrendingUp, path: "/admin/predict" },
+    { label: "Dataset Management", icon: Database, path: "/admin/dataset-management" },
     { label: "Monitoring", icon: BarChart, path: "/admin/monitoring" },
     { label: "Users", icon: Users, path: "/admin/users" },
   ];

@@ -18,10 +18,7 @@ import Reports from "./pages/user/Reports" ;
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import DataManagement from "./pages/admin/DataManagement";
-import DatasetUpload from "./pages/admin/DatasetUpload";
-import IndicatorManagement from "./pages/admin/IndicatorManagement";
-import ModelTraining from "./pages/admin/ModelTraining";
-import RegionManagement from "./pages/admin/RegionManagement";
+import Predict from "./pages/admin/Predict";
 import SystemMonitoring from "./pages/admin/SystemMonitoring";
 import UserManagement from "./pages/admin/UserManagement";
 
@@ -57,28 +54,13 @@ function App() {
         />
 
         <Route
-        path="/admin/dataset-upload"
-        element={<AdminRoute><DatasetUpload /></AdminRoute>}
+        path="/admin/predict"
+        element={<AdminRoute><Predict /></AdminRoute>}
         />
 
         <Route
-        path="/admin/data-management"
+        path="/admin/dataset-management"
         element={<AdminRoute><DataManagement /></AdminRoute>}
-        />
-
-        <Route
-        path="/admin/model-training"
-        element={<AdminRoute><ModelTraining /></AdminRoute>}
-        />
-
-        <Route
-        path="/admin/indicators"
-        element={<AdminRoute><IndicatorManagement /></AdminRoute>}
-        />
-
-        <Route
-        path="/admin/regions"
-        element={<AdminRoute><RegionManagement /></AdminRoute>}
         />
 
         <Route

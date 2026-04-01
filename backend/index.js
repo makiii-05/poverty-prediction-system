@@ -9,6 +9,7 @@ const userRoutes = require("./routes/userRoute");
 const dataRoute = require("./routes/dataRoute"); 
 const predictionRoute = require("./routes/predictionRoute");
 const datasetRoute = require("./routes/datasetRoute");
+const adminPredictionRoute = require("./routes/adminPredictRoute");
 
 const app = express();
 
@@ -33,7 +34,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/data", dataRoute);
 app.use("/api/prediction", predictionRoute);
 app.use("/api/dataset", datasetRoute);
-
+app.use("/api/admin-predictions", adminPredictionRoute)
 // Test route
 app.get("/", (req, res) => {
   res.send("API is working 🚀");
