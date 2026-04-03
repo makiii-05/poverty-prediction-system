@@ -1,6 +1,6 @@
 import AdminLayout from "../../layouts/AdminLayout"
 
-export default function DataManagement(){
+export default function DatasetManagement(){
     return(
         <>
         <AdminLayout>

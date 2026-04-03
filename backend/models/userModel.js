@@ -53,6 +53,15 @@ const User = {
     return rows[0];
   },
 
+  // Find user with password by ID
+  findByIdWithPassword: async (id) => {
+    const [rows] = await db.query(
+      "SELECT id, name, email, role, username, address, password FROM users WHERE id = ?",
+      [id]
+    );
+    return rows[0];
+  },
+
   // Check email
   checkEmail: async (email) => {
     const [rows] = await db.query(

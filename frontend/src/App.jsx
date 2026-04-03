@@ -17,10 +17,15 @@ import Reports from "./pages/user/Reports" ;
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import DataManagement from "./pages/admin/DataManagement";
+import DatasetManagement from "./pages/admin/DatasetManagement";
 import Predict from "./pages/admin/Predict";
 import SystemMonitoring from "./pages/admin/SystemMonitoring";
 import UserManagement from "./pages/admin/UserManagement";
+
+// New pages
+import DataMonitoring from "./pages/admin/DataMonitoring";
+import AdminReports from "./pages/admin/Reports";
+import AdminVisualization from "./pages/admin/Visualization";
 
 // Components
 import UnauthorizedPage from "./components/pages/UnauthorizedPage";
@@ -59,12 +64,28 @@ function App() {
         />
 
         <Route
-        path="/admin/dataset-management"
-        element={<AdminRoute><DataManagement /></AdminRoute>}
+        path="/admin/dataset/management"
+        element={<AdminRoute><DatasetManagement /></AdminRoute>}
+        />
+
+        
+        <Route
+        path="/admin/data/monitoring"
+        element={<AdminRoute><DataMonitoring /></AdminRoute>}
         />
 
         <Route
-        path="/admin/monitoring"
+        path="/admin/reports"
+        element={<AdminRoute><AdminReports /></AdminRoute>}
+        />
+
+        <Route
+        path="/admin/visualization"
+        element={<AdminRoute><AdminVisualization /></AdminRoute>}
+        />
+
+        <Route
+        path="/admin/system/monitoring"
         element={<AdminRoute><SystemMonitoring /></AdminRoute>}
         />
 

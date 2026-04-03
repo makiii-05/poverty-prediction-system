@@ -61,45 +61,6 @@ export default function AdminPredictResultModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-                <p className="text-[10px] text-slate-500">ML Model</p>
-                <p className="mt-1 text-[11px] font-bold text-slate-900">
-                  {formatMetric(result.modelInfo?.model_name)}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-                <p className="text-[10px] text-slate-500">Accuracy</p>
-                <p className="mt-1 text-[11px] font-bold text-slate-900">
-                  {formatMetric(result.modelInfo?.accuracy)}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-                <p className="text-[10px] text-slate-500">F1 Score</p>
-                <p className="mt-1 text-[11px] font-bold text-slate-900">
-                  {formatMetric(result.modelInfo?.f1)}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-center">
-                <p className="text-[10px] text-slate-500">Recall</p>
-                <p className="mt-1 text-[11px] font-bold text-slate-900">
-                  {formatMetric(result.modelInfo?.recall)}
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-              <p className="mb-1.5 text-xs font-semibold text-slate-700">
-                Confusion Matrix
-              </p>
-              <pre className="overflow-x-auto rounded-md bg-white p-2.5 text-[11px] text-slate-700">
-                {formatMetric(result.modelInfo?.confusion_matrix)}
-              </pre>
-            </div>
-
             {result.failedRows > 0 && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
                 <div className="flex items-start gap-2">

@@ -94,3 +94,18 @@ export const savePredictionHistory = async (payload) => {
 
   return data;
 };
+
+export const getPredictionHistory = async (limit = 10) => {
+  const response = await fetch(`${BASE_URL}/history?limit=${limit}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Fetching prediction history failed");
+  }
+
+  return data;
+};

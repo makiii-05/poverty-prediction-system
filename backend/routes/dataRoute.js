@@ -11,5 +11,6 @@ router.get("/", DataController.getAll);
 
 router.post("/", DataController.create);
 router.delete("/:id", DataController.delete);
+router.delete("/year/:year", DataController.deleteByYear);
 
 module.exports = router;

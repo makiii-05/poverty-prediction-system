@@ -2,6 +2,9 @@ import {
   LayoutDashboard,
   TrendingUp,
   Database,
+  Activity,
+  FileBarChart,
+  BarChart3,
   BarChart,
   Users,
   X,
@@ -12,8 +15,11 @@ export default function AdminSidebar({ isOpen, onClose }) {
   const menu = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     { label: "Predict", icon: TrendingUp, path: "/admin/predict" },
-    { label: "Dataset Management", icon: Database, path: "/admin/dataset-management" },
-    { label: "Monitoring", icon: BarChart, path: "/admin/monitoring" },
+    //{ label: "Dataset Management", icon: Database, path: "/admin/dataset/management" },
+    { label: "Data Monitoring", icon: Activity, path: "/admin/data/monitoring" },
+    { label: "Reports", icon: FileBarChart, path: "/admin/reports" },
+    { label: "Visualization", icon: BarChart3, path: "/admin/visualization" },
+    { label: "System Monitoring", icon: BarChart, path: "/admin/system/monitoring" },
     { label: "Users", icon: Users, path: "/admin/users" },
   ];
 

@@ -117,3 +117,20 @@ export const deleteData = async (id) => {
 
   return data;
 };
+
+// -----------------------------
+// DELETE DATA BY YEAR
+// -----------------------------
+export const deleteByYear = async (year) => {
+  const res = await fetch(`${BASE_URL}/year/${year}`, {
+    method: "DELETE",
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to delete data");
+  }
+
+  return data;
+};

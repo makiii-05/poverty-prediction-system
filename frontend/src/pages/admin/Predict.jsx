@@ -5,8 +5,10 @@ import {
   saveBulkPredictions,
   savePredictionHistory,
 } from "../../api/AdminPredictAPI";
+import { verifyAdminPassword } from "../../api/AdminActionAPI";
 
 import ConfirmModal from "../../components/common/ConfirmModal";
+import ConfirmAction from "../../components/auth/ConfirmAction";
 
 import AdminPredictBanner from "../../components/admin-predict/AdminPredictBanner";
 import AdminPredictUploadCard from "../../components/admin-predict/AdminPredictUploadCard";
@@ -29,11 +31,11 @@ export default function Predict() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState(null);
+
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
 
   const openModal = (message) => {
     setModalMessage(message);
-    setConfirmAction(null);
     setModalOpen(true);
   };
 
@@ -115,6 +117,8 @@ export default function Predict() {
         results: result.rows,
       });
 
+      setConfirmSaveOpen(false);
+
       openModal(
         `Saved successfully!\nRows: ${saveResponse.saved_rows}\nHistory ID: ${historyResponse.history_id}`
       );
@@ -131,11 +135,16 @@ export default function Predict() {
       return;
     }
 
-    setModalMessage(
-      "Are you sure you want to save this data to the database?\n\nThis action cannot be undone."
-    );
-    setConfirmAction(() => executeSave);
-    setModalOpen(true);
+    setConfirmSaveOpen(true);
+  };
+
+  const handleConfirmSave = async (password) => {
+    try {
+      await verifyAdminPassword(password);
+      await executeSave();
+    } catch (error) {
+      throw new Error(error.message || "Wrong password. Try again.");
+    }
   };
 
   return (
@@ -143,20 +152,20 @@ export default function Predict() {
       <ConfirmModal
         isOpen={modalOpen}
         message={modalMessage}
-        onConfirm={async () => {
-          setModalOpen(false);
+        onConfirm={() => setModalOpen(false)}
+        onCancel={() => setModalOpen(false)}
+        confirmText="OK"
+        cancelText=""
+      />
 
-          if (confirmAction) {
-            await confirmAction();
-            setConfirmAction(null);
-          }
-        }}
-        onCancel={() => {
-          setModalOpen(false);
-          setConfirmAction(null);
-        }}
-        confirmText={confirmAction ? "Yes, Save" : "OK"}
-        cancelText={confirmAction ? "Cancel" : ""}
+      <ConfirmAction
+        isOpen={confirmSaveOpen}
+        onConfirm={handleConfirmSave}
+        onCancel={() => setConfirmSaveOpen(false)}
+        message={
+          "Are you sure you want to save this data to the database?\n\nThis action cannot be undone."
+        }
+        loading={saving}
       />
 
       <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6">
@@ -192,7 +201,6 @@ export default function Predict() {
 
         <AdminPredictHistoryModal
           open={showHistoryModal}
-          history={history}
           onClose={() => setShowHistoryModal(false)}
         />
       </div>

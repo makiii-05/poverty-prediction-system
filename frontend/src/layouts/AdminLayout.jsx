@@ -1,6 +1,8 @@
 import { useState } from "react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
+import BackToTop from "../components/layout/BackToTop";
 
 export default function UserLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,6 +28,8 @@ export default function UserLayout({ children }) {
         </main>
 
       </div>
+      <Footer />
+      <BackToTop />
     </div>
   );
 }

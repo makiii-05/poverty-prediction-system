@@ -112,6 +112,16 @@ const DataService = {
       message: "Data deleted successfully",
     };
   },
+
+  deleteByYear: async (year) => {
+    if (!year) {
+      throw new Error("Year is required");
+    }
+
+    const result = await DataModel.deleteByYear(year);
+
+    return result;
+  },
 };
 
 module.exports = DataService;

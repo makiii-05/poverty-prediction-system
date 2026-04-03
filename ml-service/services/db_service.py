@@ -235,3 +235,40 @@ def save_prediction_history(
             cursor.close()
         if conn:
             conn.close()
+
+
+def get_prediction_history(limit=10):
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                id,
+                file_name,
+                total_rows,
+                predicted_rows,
+                failed_rows,
+                model_name,
+                accuracy,
+                f1,
+                recall,
+                created_at
+            FROM prediction_history
+            ORDER BY created_at DESC, id DESC
+            LIMIT %s
+        """
+
+        cursor.execute(query, (int(limit),))
+        rows = cursor.fetchall()
+
+        return rows
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

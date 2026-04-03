@@ -23,10 +23,7 @@ const normalizeRow = (row) => {
       cleanKey === "mean_year_of_education"
     ) {
       normalized.mean_years_education = row[key];
-    } else if (
-      cleanKey === "population_size" ||
-      cleanKey === "population"
-    ) {
+    } else if (cleanKey === "population_size" || cleanKey === "population") {
       normalized.population_size = row[key];
     }
   });
@@ -206,10 +203,43 @@ const savePredictionHistory = async (req, res) => {
   }
 };
 
+const getPredictionHistory = async (req, res) => {
+  try {
+    const limit = req.query.limit || 10;
+
+    const response = await fetch(
+      `http://127.0.0.1:8000/history?limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        message: data.error || "Fetching prediction history failed",
+      });
+    }
+
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   predictAdminPovertyLevel,
   saveAdminPrediction,
   uploadAndPredictBulk,
   saveBulkPredictions,
   savePredictionHistory,
+  getPredictionHistory,
 };

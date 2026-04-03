@@ -179,6 +179,16 @@ const DataModel = {
     );
     return result;
   },
+
+  // Delete by year
+  deleteByYear: async (year) => {
+    const [result] = await db.query(
+      `DELETE FROM regional_data WHERE year = ?`,
+      [year]
+    );
+    return result
+  }
+
 };
 
 module.exports = DataModel;

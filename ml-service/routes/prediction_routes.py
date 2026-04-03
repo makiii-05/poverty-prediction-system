@@ -10,7 +10,9 @@ from services.db_service import (
     save_single_prediction,
     save_bulk_predictions,
     save_prediction_history,
+    get_prediction_history,
 )
+
 from utils.validators import validate_prediction_data
 from utils.helpers import to_int, to_float, normalize_region
 
@@ -271,6 +273,30 @@ def save_history():
             "history_id": history_result["history_id"],
             "details_saved": history_result["details_saved"]
         })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
+@prediction_bp.route("/history", methods=["GET"])
+def get_history():
+    try:
+        limit = request.args.get("limit", default=10, type=int)
+
+        if limit is None or limit <= 0:
+            return jsonify({
+                "success": False,
+                "error": "Limit must be a positive integer"
+            }), 400
+
+        history = get_prediction_history(limit=limit)
+
+        return jsonify({
+            "success": True,
+            "history": history
+        }), 200
 
     except Exception as e:
         return jsonify({
