@@ -10,6 +10,10 @@ const normalizeRow = (row) => {
   Object.keys(row || {}).forEach((key) => {
     const cleanKey = normalizeKey(key);
 
+    // ✅ DEBUG: show key transformation
+    console.log("ORIGINAL KEY:", key);
+    console.log("NORMALIZED KEY:", cleanKey);
+
     if (cleanKey === "region") normalized.region = row[key];
     else if (cleanKey === "year") normalized.year = row[key];
     else if (cleanKey === "ave_income" || cleanKey === "average_income") {
@@ -23,10 +27,24 @@ const normalizeRow = (row) => {
       cleanKey === "mean_year_of_education"
     ) {
       normalized.mean_years_education = row[key];
-    } else if (cleanKey === "population_size" || cleanKey === "population") {
+    } else if (
+      cleanKey === "population_size" ||
+      cleanKey === "population"
+    ) {
       normalized.population_size = row[key];
     }
+
+    // 🔥 IMPORTANT FIELD
+    else if (
+      cleanKey === "poverty_incidence" ||
+      cleanKey === "povertyincidence"
+    ) {
+      normalized.poverty_incidence = row[key];
+    }
   });
+
+  // ✅ DEBUG: show final result
+  console.log("FINAL NORMALIZED ROW:", normalized);
 
   return normalized;
 };
@@ -35,7 +53,11 @@ const parseUploadFile = (filePath) => {
   const workbook = XLSX.readFile(filePath);
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
-  const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+  const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+  // 🔥 APPLY NORMALIZATION
+  const rows = rawRows.map((row) => normalizeRow(row));
+  // ✅ DEBUG
+  console.log("ROWS AFTER NORMALIZATION:", rows);
 
   return rows.map(normalizeRow);
 };

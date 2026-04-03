@@ -5,6 +5,7 @@ from services.model_service import (
     VALID_REGIONS,
     get_model_info,
     predict_single,
+    classify_or_predict_row,
 )
 from services.db_service import (
     save_single_prediction,
@@ -47,6 +48,7 @@ def predict_user():
         return jsonify({
             "success": True,
             "poverty_level": prediction,
+            "basis": "model",
             "model_info": get_model_info()
         })
 
@@ -79,6 +81,7 @@ def predict_admin():
         return jsonify({
             "success": True,
             "poverty_level": prediction,
+            "basis": "model",
             "model_info": get_model_info()
         })
 
@@ -113,23 +116,29 @@ def predict_bulk():
 
         results = []
         errors = []
+        threshold_rows = 0
+        predicted_rows = 0
 
         for index, item in enumerate(data):
             try:
                 validate_prediction_data(item, require_poverty_level=False)
-                prediction = predict_single(item, to_int, to_float, normalize_region)
 
-                results.append({
-                    "row_index": index + 1,
-                    "region": normalize_region(item.get("region")),
-                    "year": to_int(item.get("year"), "year"),
-                    "ave_income": to_float(item.get("ave_income"), "ave_income"),
-                    "expenditure": to_float(item.get("expenditure"), "expenditure"),
-                    "unemployment_rate": to_float(item.get("unemployment_rate"), "unemployment_rate"),
-                    "mean_years_education": to_float(item.get("mean_years_education"), "mean_years_education"),
-                    "population_size": to_int(item.get("population_size"), "population_size"),
-                    "poverty_level": prediction
-                })
+                result = classify_or_predict_row(
+                    item,
+                    to_int,
+                    to_float,
+                    normalize_region
+                )
+
+                result["row_index"] = index + 1
+
+                if result.get("basis") == "threshold":
+                    threshold_rows += 1
+                else:
+                    predicted_rows += 1
+
+                results.append(result)
+
             except Exception as row_error:
                 errors.append({
                     "row_index": index + 1,
@@ -139,7 +148,9 @@ def predict_bulk():
         return jsonify({
             "success": True,
             "total_rows": len(data),
-            "predicted_rows": len(results),
+            "processed_rows": len(results),
+            "threshold_rows": threshold_rows,
+            "predicted_rows": predicted_rows,
             "failed_rows": len(errors),
             "results": results,
             "errors": errors,
@@ -279,7 +290,8 @@ def save_history():
             "success": False,
             "error": str(e)
         }), 500
-    
+
+
 @prediction_bp.route("/history", methods=["GET"])
 def get_history():
     try:
