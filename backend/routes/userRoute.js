@@ -19,9 +19,11 @@ router.get("/me", verifyToken, (req, res) => {
   });
 });
 
-router.get("/:id", verifyToken, UserController.getProfile);
+// Admin and user
 router.put("/:id", verifyToken, UserController.updateUser);
+router.get("/:id", verifyToken, UserController.getProfile);
 router.put("/:id/change-password", verifyToken, UserController.changePassword);
+
 
 // Admin-only routes
 router.get("/", verifyToken, verifyAdmin, UserController.getAllUsers);

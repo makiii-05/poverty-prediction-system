@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import FullscreenLoader from "../common/Loader";
 import ConfirmModal from "../common/ConfirmModal";
@@ -7,10 +7,6 @@ import LoginForm from "./LoginForm";
 import SignupForm from "./SignupForm";
 import { registerUser, loginUser } from "../../api/UserLoginAPI";
 
-const MAX_ATTEMPTS = 5;
-const LOCK_SECONDS = 30;
-const STORAGE_KEY = "plps_login_guard";
-
 export default function AuthModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("login");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -18,10 +14,6 @@ export default function AuthModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [openModal, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
-
-  const [attempts, setAttempts] = useState(0);
-  const [locked, setLocked] = useState(false);
-  const [timer, setTimer] = useState(0);
 
   const [loginForm, setLoginForm] = useState({
     username: "",
@@ -36,92 +28,7 @@ export default function AuthModal({ isOpen, onClose }) {
     password: "",
   });
 
-  useEffect(() => {
-    const savedGuard = localStorage.getItem(STORAGE_KEY);
-
-    if (!savedGuard) return;
-
-    try {
-      const parsed = JSON.parse(savedGuard);
-      const now = Date.now();
-
-      if (parsed.lockUntil && parsed.lockUntil > now) {
-        const remainingSeconds = Math.ceil((parsed.lockUntil - now) / 1000);
-        setAttempts(parsed.attempts || MAX_ATTEMPTS);
-        setLocked(true);
-        setTimer(remainingSeconds);
-      } else {
-        setAttempts(parsed.attempts || 0);
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            attempts:
-              parsed.lockUntil && parsed.lockUntil <= now
-                ? 0
-                : parsed.attempts || 0,
-            lockUntil: null,
-          })
-        );
-      }
-    } catch (error) {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
-
-  useEffect(() => {
-    let interval;
-
-    if (locked && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setLocked(false);
-            setAttempts(0);
-            localStorage.setItem(
-              STORAGE_KEY,
-              JSON.stringify({
-                attempts: 0,
-                lockUntil: null,
-              })
-            );
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => clearInterval(interval);
-  }, [locked, timer]);
-
   if (!isOpen) return null;
-
-  const saveGuardState = (nextAttempts, lockUntil = null) => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        attempts: nextAttempts,
-        lockUntil,
-      })
-    );
-  };
-
-  const resetGuardState = () => {
-    setAttempts(0);
-    setLocked(false);
-    setTimer(0);
-    saveGuardState(0, null);
-  };
-
-  const startLockTimer = (seconds, currentAttempts = MAX_ATTEMPTS) => {
-    const lockUntil = Date.now() + seconds * 1000;
-
-    setLocked(true);
-    setTimer(seconds);
-    setAttempts(currentAttempts);
-    saveGuardState(currentAttempts, lockUntil);
-  };
 
   const handleLoginChange = (e) => {
     setLoginForm({
@@ -139,15 +46,10 @@ export default function AuthModal({ isOpen, onClose }) {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-
-    if (locked) return;
-
     setLoading(true);
 
     try {
       const data = await loginUser(loginForm.username, loginForm.password);
-
-      resetGuardState();
 
       setLoginForm({
         username: "",
@@ -162,25 +64,8 @@ export default function AuthModal({ isOpen, onClose }) {
         window.location.href = "/dashboard";
       }
     } catch (error) {
-      const message = error.message || "Login failed";
-      const nextAttempts = attempts + 1;
-
-      if (message.toLowerCase().includes("too many")) {
-        setModalMessage(message);
-        setModalOpen(true);
-        startLockTimer(LOCK_SECONDS, MAX_ATTEMPTS);
-      } else if (nextAttempts >= MAX_ATTEMPTS) {
-        setModalMessage(
-          `Too many login attempts. Please wait ${LOCK_SECONDS} seconds before trying again.`
-        );
-        setModalOpen(true);
-        startLockTimer(LOCK_SECONDS, nextAttempts);
-      } else {
-        setAttempts(nextAttempts);
-        saveGuardState(nextAttempts, null);
-        setModalMessage(message);
-        setModalOpen(true);
-      }
+      setModalMessage(error.message || "Login failed");
+      setModalOpen(true);
     } finally {
       setLoading(false);
     }
@@ -208,16 +93,16 @@ export default function AuthModal({ isOpen, onClose }) {
         username: "",
         password: "",
       });
+
+      setModalMessage("Account created successfully. You can now log in.");
+      setModalOpen(true);
     } catch (error) {
-      setModalMessage(error.message);
+      setModalMessage(error.message || "Signup failed");
       setModalOpen(true);
     } finally {
       setLoading(false);
     }
   };
-
-  const attemptsLeft = Math.max(MAX_ATTEMPTS - attempts, 0);
-  const progressWidth = `${(attempts / MAX_ATTEMPTS) * 100}%`;
 
   return (
     <>
@@ -283,12 +168,6 @@ export default function AuthModal({ isOpen, onClose }) {
                     handleLoginSubmit={handleLoginSubmit}
                     showLoginPassword={showLoginPassword}
                     setShowLoginPassword={setShowLoginPassword}
-                    attempts={attempts}
-                    attemptsLeft={attemptsLeft}
-                    locked={locked}
-                    timer={timer}
-                    progressWidth={progressWidth}
-                    maxAttempts={MAX_ATTEMPTS}
                     setActiveTab={setActiveTab}
                   />
                 ) : (

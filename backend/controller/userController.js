@@ -92,12 +92,12 @@ const UserController = {
   updateUser: async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, address, username } = req.body;
+      const { name, address, email } = req.body;
 
       const result = await UserService.updateUser(id, {
         name,
         address,
-        username
+        email
       });
 
       return res.status(200).json(result);
@@ -108,24 +108,27 @@ const UserController = {
     }
   },
 
-  changePassword: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { oldPassword, newPassword } = req.body;
+changePassword: async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { oldPassword, newPassword } = req.body;
 
-      const result = await UserService.changePassword(
-        id,
-        oldPassword,
-        newPassword
-      );
+    const isAdmin = req.user?.role === "admin";
 
-      return res.status(200).json(result);
-    } catch (error) {
-      return res.status(400).json({
-        message: error.message
-      });
-    }
-  },
+    const result = await UserService.changePassword(
+      id,
+      oldPassword,
+      newPassword,
+      isAdmin
+    );
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+},
 
   deleteUser: async (req, res) => {
     try {

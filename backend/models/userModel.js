@@ -74,32 +74,28 @@ const User = {
   // Get all users
   getAll: async () => {
     const [rows] = await db.query(
-      "SELECT id, name, email, role, username, created_at FROM users"
+      "SELECT id, name, email, role, username, email, address, created_at FROM users"
     );
     return rows;
   },
 
   // Update user
-  update: async (id, { name, address, username }) => {
+  update: async (id, { name, address, email }) => {
     const [result] = await db.query(
       `UPDATE users 
-       SET name = ?, address = ?, username = ?
+       SET name = ?, address = ?, email = ?
        WHERE id = ?`,
-      [name, address, username, id]
+      [name, address, email, id]
     );
     return result.affectedRows;
   },
 
-  // Update password
-  updatePassword: async (id, newPassword) => {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
+  updatePassword: async (id, hashedPassword) => {
     const [result] = await db.query(
-      "UPDATE users SET password = ? WHERE id = ?",
+      `UPDATE users SET password = ? WHERE id = ?`,
       [hashedPassword, id]
     );
-
-    return result.affectedRows;
+    return result;
   },
 
   // Delete user

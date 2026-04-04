@@ -38,6 +38,7 @@ export default function PredictionForm({
             label="Year"
             name="year"
             type="number"
+            min="0"
             value={formData.year}
             onChange={onChange}
             placeholder="e.g. 2026"
@@ -57,6 +58,7 @@ export default function PredictionForm({
             label="Average Income"
             name="ave_income"
             type="number"
+            min="0"
             value={formData.ave_income}
             onChange={onChange}
             placeholder="e.g. 200000"
@@ -67,6 +69,7 @@ export default function PredictionForm({
             label="Expenditure"
             name="expenditure"
             type="number"
+            min="0"
             value={formData.expenditure}
             onChange={onChange}
             placeholder="e.g. 150000"
@@ -77,6 +80,7 @@ export default function PredictionForm({
             label="Unemployment Rate"
             name="unemployment_rate"
             type="number"
+            min="0"
             step="any"
             value={formData.unemployment_rate}
             onChange={onChange}
@@ -88,6 +92,7 @@ export default function PredictionForm({
             label="Mean Years of Education"
             name="mean_years_education"
             type="number"
+            min="0"
             step="any"
             value={formData.mean_years_education}
             onChange={onChange}
@@ -100,6 +105,7 @@ export default function PredictionForm({
               label="Population Size"
               name="population_size"
               type="number"
+              min="0"
               value={formData.population_size}
               onChange={onChange}
               placeholder="e.g. 2000000"

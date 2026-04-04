@@ -1,5 +1,4 @@
 import { Eye, EyeOff, Lock, User } from "lucide-react";
-import LoginSecurityNotice from "./LoginSecurityNotice";
 
 export default function LoginForm({
   loginForm,
@@ -7,12 +6,6 @@ export default function LoginForm({
   handleLoginSubmit,
   showLoginPassword,
   setShowLoginPassword,
-  attempts,
-  attemptsLeft,
-  locked,
-  timer,
-  progressWidth,
-  maxAttempts,
   setActiveTab,
 }) {
   return (
@@ -60,15 +53,6 @@ export default function LoginForm({
             )}
           </button>
         </div>
-
-        <LoginSecurityNotice
-          attempts={attempts}
-          attemptsLeft={attemptsLeft}
-          locked={locked}
-          timer={timer}
-          progressWidth={progressWidth}
-          maxAttempts={maxAttempts}
-        />
       </div>
 
       <div className="text-right">
@@ -82,14 +66,9 @@ export default function LoginForm({
 
       <button
         type="submit"
-        disabled={locked}
-        className={`w-full rounded-2xl px-5 py-3.5 text-sm font-semibold text-white shadow-md transition ${
-          locked
-            ? "cursor-not-allowed bg-slate-400"
-            : "bg-[#003B95] hover:bg-[#002766]"
-        }`}
+        className="w-full rounded-2xl bg-[#003B95] px-5 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#002766]"
       >
-        {locked ? `Try again in ${timer}s` : "Login"}
+        Login
       </button>
 
       <p className="text-center text-sm text-slate-500">

@@ -76,32 +76,21 @@ const UserService = {
     return user;
   },
 
-  // Get single user profile
-  getProfile: async (id) => {
-    const user = await User.findById(id);
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    return user;
-  },
-
   // Get all users
   getAllUsers: async () => {
     return await User.getAll();
   },
 
   // Update user info
-  updateUser: async (id, { name, address, username }) => {
-    if (!name || !address || !username) {
+  updateUser: async (id, { name, address, email }) => {
+    if (!name || !address || !email) {
       throw new Error("Please fill all the fields!");
     }
 
     const affectedRows = await User.update(id, {
       name,
       address,
-      username
+      email
     });
 
     if (affectedRows === 0) {
@@ -113,38 +102,45 @@ const UserService = {
     };
   },
 
-  // Change password
-  changePassword: async (id, oldPassword, newPassword) => {
-    if (!oldPassword || !newPassword) {
-      throw new Error("Old password and new password are required");
-    }
+  changePassword: async (id, oldPassword, newPassword, isAdmin = false) => {
+  if (!newPassword) {
+    throw new Error("New password is required");
+  }
 
-    if (!validatePassword(newPassword)) {
-      throw new Error(
-        "New password must be at least 8 characters long, include uppercase, lowercase, and a special character"
-      );
-    }
+  const user = await User.findById(id);
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-    const user = await User.findById(id);
+  // Admin reset: no old password needed
+  if (isAdmin) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const fullUser = await User.findByEmail(user.email);
-
-    const isMatch = await bcrypt.compare(oldPassword, fullUser.password);
-
-    if (!isMatch) {
-      throw new Error("Old password is incorrect");
-    }
-
-    await User.updatePassword(id, newPassword);
+    await User.updatePassword(id, hashedPassword);
 
     return {
-      message: "Password updated successfully"
+      message: "Password changed successfully",
     };
-  },
+  }
+
+  // Normal user change: old password required
+  if (!oldPassword) {
+    throw new Error("Old password and new password are required");
+  }
+
+  const isMatch = await bcrypt.compare(oldPassword, user.password);
+  if (!isMatch) {
+    throw new Error("Old password is incorrect");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await User.updatePassword(id, hashedPassword);
+
+  return {
+    message: "Password changed successfully",
+  };
+},
 
   // Delete user
   deleteUser: async (id) => {

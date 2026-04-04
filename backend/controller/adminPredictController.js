@@ -1,3 +1,5 @@
+const { startFlask } = require("../utils/startFlask");
+
 const XLSX = require("xlsx");
 const fs = require("fs");
 
@@ -34,7 +36,7 @@ const normalizeRow = (row) => {
       normalized.population_size = row[key];
     }
 
-    // 🔥 IMPORTANT FIELD
+    // IMPORTANT FIELD
     else if (
       cleanKey === "poverty_incidence" ||
       cleanKey === "povertyincidence"
@@ -43,7 +45,7 @@ const normalizeRow = (row) => {
     }
   });
 
-  // ✅ DEBUG: show final result
+  // DEBUG: show final result
   console.log("FINAL NORMALIZED ROW:", normalized);
 
   return normalized;
@@ -54,9 +56,11 @@ const parseUploadFile = (filePath) => {
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
   const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-  // 🔥 APPLY NORMALIZATION
+  
+  // APPLY NORMALIZATION
   const rows = rawRows.map((row) => normalizeRow(row));
-  // ✅ DEBUG
+  
+  // DEBUG
   console.log("ROWS AFTER NORMALIZATION:", rows);
 
   return rows.map(normalizeRow);
@@ -122,6 +126,11 @@ const uploadAndPredictBulk = async (req, res) => {
   let filePath = null;
 
   try {
+    startFlask();
+
+    // wait a bit if Flask is just starting
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -160,7 +169,7 @@ const uploadAndPredictBulk = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Prediction failed",
     });
   } finally {
     if (filePath && fs.existsSync(filePath)) {
