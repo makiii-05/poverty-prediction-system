@@ -15,6 +15,19 @@ export const getAllData = async () => {
   return data;
 };
 
+// Get region, year and poverty level
+export const getRegionYearLevel = async () => {
+  const res = await fetch(`${BASE_URL}/region-year-level`);
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to fetch region year level");
+  }
+
+  return data;
+};
+
 // -----------------------------
 // GET BY ID
 // -----------------------------

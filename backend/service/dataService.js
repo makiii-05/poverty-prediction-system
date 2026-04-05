@@ -12,6 +12,17 @@ const DataService = {
     return data;
   },
 
+  // Get Region, Year and Poverty level
+  getRegionYearLevel: async () => {
+    const rows = await DataModel.getRegionYearLevel();
+
+    if (!rows || rows.length === 0) {
+      throw new Error("Data not found");
+    }
+
+    return rows;
+  },
+
   // Get single data
   getDataById: async (id) => {
     if (!id) {

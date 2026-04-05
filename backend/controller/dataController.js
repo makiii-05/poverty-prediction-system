@@ -11,6 +11,20 @@ const DataController = {
     }
   },
 
+
+  getRegionYearLevel: async (req, res) => {
+    try {
+      const rows = await DataService.getRegionYearLevel();
+
+      res.status(200).json(rows);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      res.status(500).json({
+        message: "Failed to fetch region, year, poverty level",
+      });
+    }
+  },
+
   // GET /api/regional-data/:id
   getById: async (req, res) => {
     try {

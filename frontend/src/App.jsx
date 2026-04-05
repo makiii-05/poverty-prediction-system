@@ -19,13 +19,15 @@ import Reports from "./pages/user/Reports" ;
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import DatasetManagement from "./pages/admin/DatasetManagement";
 import Predict from "./pages/admin/Predict";
-import SystemMonitoring from "./pages/admin/SystemMonitoring";
+//import SystemMonitoring from "./pages/admin/SystemMonitoring";
 import UserManagement from "./pages/admin/UserManagement";
-
-// New pages
 import DataMonitoring from "./pages/admin/DataMonitoring";
 import AdminReports from "./pages/admin/Reports";
-import AdminVisualization from "./pages/admin/Visualization";
+
+// charts
+import MapVisualization from "./pages/admin/Map";
+import BarChart from "./pages/admin/BarChart";
+import LineChart from "./pages/admin/LineChart"
 
 // Components
 import UnauthorizedPage from "./components/pages/UnauthorizedPage";
@@ -80,14 +82,25 @@ function App() {
         />
 
         <Route
-        path="/admin/visualization"
-        element={<AdminRoute><AdminVisualization /></AdminRoute>}
+        path="/admin/map"
+        element={<AdminRoute><MapVisualization /></AdminRoute>}
         />
 
         <Route
+        path="/admin/bar-chart"
+        element={<AdminRoute><BarChart /></AdminRoute>}
+        />
+
+        <Route
+        path="/admin/line-chart"
+        element={<AdminRoute><LineChart /></AdminRoute>}
+        />
+
+        {/*<Route
         path="/admin/system/monitoring"
         element={<AdminRoute><SystemMonitoring /></AdminRoute>}
         />
+        */}
 
         <Route
         path="/admin/users"

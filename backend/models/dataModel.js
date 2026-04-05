@@ -21,6 +21,21 @@ const DataModel = {
     return rows;
   },
 
+  // Get Region, Year and Poverty Level
+  getRegionYearLevel: async () => {
+    const [rows] = await db.query(`
+      SELECT 
+        region,
+        region_name,
+        year,
+        poverty_level
+      FROM regional_data
+      ORDER BY year ASC, region_name ASC
+    `);
+
+    return rows;
+  },
+
   // Get by ID
   getById: async (id) => {
     const [rows] = await db.query(

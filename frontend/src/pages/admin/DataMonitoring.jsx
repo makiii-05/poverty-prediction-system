@@ -238,14 +238,36 @@ export default function DataMonitoring() {
       />
 
       <div className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4 md:px-6">
-        <div className="mb-4 sm:mb-5">
-          <h1 className="text-xl font-bold tracking-tight text-[#003B95] sm:text-2xl md:text-3xl">
-            Data Monitoring
-          </h1>
-          <p className="mt-1 text-xs text-slate-600 sm:text-sm">
-            Monitor and manage historical regional socioeconomic data
-          </p>
+      {/* HEADER */}
+      <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B95] to-[#0056d2] p-6 text-white shadow-md">
+
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+          {/* LEFT */}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Data Monitoring
+            </h1>
+            <p className="mt-1 text-sm text-blue-100">
+              Monitor and manage historical regional socioeconomic data
+            </p>
+          </div>
+
+          {/* RIGHT (optional info badge) */}
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-white/10 px-4 py-2 text-sm backdrop-blur">
+              Total Records:{" "}
+              <span className="font-semibold">
+                {allData.length}
+              </span>
+            </div>
+          </div>
+
         </div>
+
+        {/* Decorative blur */}
+        <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      </div>
 
         <DataMonitoringFilters
           selectedRegion={selectedRegion}
