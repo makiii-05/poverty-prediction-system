@@ -81,7 +81,7 @@ export default function AdminDashboard() {
         {/* LEFT */}
         <div>
         <h1 className="text-2xl font-bold tracking-tight">
-            Admin Dashboard
+            Dashboard
         </h1>
         <p className="mt-1 text-sm text-blue-100">
             Poverty Level Prediction System Overview
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
             Visualization Shortcuts
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Open detailed charts for the selected year: {selectedYear}
+            Open detailed charts
           </p>
 
           <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">

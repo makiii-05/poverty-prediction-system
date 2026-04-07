@@ -1,5 +1,53 @@
 {
   "model_name": "SVC",
+  "model_config": {
+    "scaler": "StandardScaler",
+    "classifier": "SVC",
+    "kernel": "rbf",
+    "C": 1.0,
+    "gamma": "scale",
+    "random_state": 42
+  },
+  "dataset_info": {
+    "feature_shape": [
+      85,
+      23
+    ],
+    "target_shape": 85,
+    "train_shape": [
+      68,
+      23
+    ],
+    "test_shape": [
+      17,
+      23
+    ],
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratify": true
+  },
+  "class_labels": [
+    "High",
+    "Low",
+    "Moderate"
+  ],
+  "class_distribution": {
+    "full_dataset": {
+      "Moderate": 29,
+      "High": 29,
+      "Low": 27
+    },
+    "train_set": {
+      "Moderate": 23,
+      "High": 23,
+      "Low": 22
+    },
+    "test_set": {
+      "High": 6,
+      "Moderate": 6,
+      "Low": 5
+    }
+  },
   "accuracy": 0.8235294117647058,
   "f1_weighted": 0.8276429452900042,
   "f1_macro": 0.8261072261072261,
@@ -52,5 +100,30 @@
       "f1-score": 0.8276429452900042,
       "support": 17.0
     }
-  }
+  },
+  "feature_names": [
+    "year",
+    "ave_income",
+    "expenditure",
+    "unemployment_rate",
+    "mean_years_education",
+    "population_size",
+    "region_BARMM",
+    "region_CAR",
+    "region_CARAGA",
+    "region_MIMAROPA",
+    "region_NCR",
+    "region_Region I",
+    "region_Region II",
+    "region_Region III",
+    "region_Region IV",
+    "region_Region IX",
+    "region_Region V",
+    "region_Region VI",
+    "region_Region VII",
+    "region_Region VIII",
+    "region_Region X",
+    "region_Region XI",
+    "region_Region XII"
+  ]
 }

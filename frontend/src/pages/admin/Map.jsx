@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import PHMap from "../../components/visualization/PHMap";
 import { getRegionYearLevel } from "../../api/DataAPI";
 
-const REGION_NAME_MAP = {
-  NCR: " National Capital Region",
+const REGION_LABEL_MAP = {
+  NCR: "National Capital Region",
   CAR: "Cordillera Administrative Region (CAR)",
   "Region I": "Ilocos Region (Region I)",
   "Region II": "Cagayan Valley (Region II)",
@@ -61,18 +61,11 @@ export default function MapPage() {
 
     rows.forEach((item) => {
       const code = item.region || item.region_name || "";
-      const name =
-        REGION_NAME_MAP[item.region] ||
-        REGION_NAME_MAP[item.region_name] ||
-        item.region_name ||
-        item.region;
+      const name = REGION_LABEL_MAP[code] || item.region_name || item.region;
 
       if (!code || !name) return;
 
-      optionsMap.set(code, {
-        code,
-        name,
-      });
+      optionsMap.set(code, { code, name });
     });
 
     return Array.from(optionsMap.values()).sort((a, b) =>
@@ -91,13 +84,10 @@ export default function MapPage() {
     );
 
     const formatted = filtered.reduce((acc, item) => {
-      const key =
-        REGION_NAME_MAP[item.region] ||
-        REGION_NAME_MAP[item.region_name] ||
-        item.region_name ||
-        item.region;
+      const regionCode = item.region || item.region_name;
+      if (!regionCode) return acc;
 
-      acc[key] = item.poverty_level;
+      acc[regionCode] = item.poverty_level;
       return acc;
     }, {});
 

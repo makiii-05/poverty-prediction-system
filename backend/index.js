@@ -12,6 +12,7 @@ const datasetRoute = require("./routes/datasetRoute");
 const adminPredictionRoute = require("./routes/adminPredictRoute");
 const adminActionRoute = require("./routes/adminActionRoute");
 const modelMetrics = require("./routes/modelMetricsRoute");
+const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/api/dataset", datasetRoute);
 app.use("/api/admin-predictions", adminPredictionRoute);
 app.use("/api/verify", adminActionRoute);
 app.use("/api/model-metrics", modelMetrics);
+app.use("/api/password", forgotPasswordRoutes);
 
 // Test route
 app.get("/", (req, res) => {

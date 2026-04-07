@@ -1,4 +1,5 @@
 import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginForm({
   loginForm,
@@ -8,6 +9,8 @@ export default function LoginForm({
   setShowLoginPassword,
   setActiveTab,
 }) {
+  const navigate = useNavigate();
+
   return (
     <form onSubmit={handleLoginSubmit} className="space-y-5">
       <div>
@@ -58,6 +61,7 @@ export default function LoginForm({
       <div className="text-right">
         <button
           type="button"
+          onClick={() => navigate("/forgot-password")}
           className="text-sm font-medium text-[#003B95] transition hover:underline"
         >
           Forgot Password?

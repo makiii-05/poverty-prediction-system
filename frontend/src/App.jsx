@@ -17,6 +17,10 @@ import UserDashboard from "./pages/user/UserDashboard";
 import RegionalData from "./pages/user/RegionalData";
 import UserPredictions from "./pages/user/UserPrediction";
 import Visualization from "./pages/user/Visualization";
+
+// Forgot password page
+import ForgotPassword from "./pages/user/ForgotPassword";
+
 //import Reports from "./pages/user/Reports" ;
 
 // Admin pages
@@ -56,6 +60,7 @@ function App() {
         <Route path="/data" element={<UserRoute><RegionalData /></UserRoute>} />
         <Route path="/predictions" element={<UserRoute><UserPredictions /></UserRoute>} />
         <Route path="/visualization" element={<UserRoute><Visualization /></UserRoute>} />
+        <Route path="/forgot-password" element={<ForgotPassword/>} />
         {/*<Route path="/reports" element={<UserRoute><Reports /></UserRoute>} />*/}
 
         {/* Admin Pages */}

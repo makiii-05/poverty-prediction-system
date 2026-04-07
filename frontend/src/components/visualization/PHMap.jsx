@@ -16,7 +16,13 @@ const getColor = (level) => {
 };
 
 const getDisplayRegionCode = (regionName) => {
-  if (regionName === "Autonomous Region of Muslim Mindanao (ARMM)") return "BARMM";
+  if (
+    regionName === "Autonomous Region of Muslim Mindanao (ARMM)" ||
+    regionName === "Bangsamoro Autonomous Region of Muslim Mindanao (BARMM)"
+  ) {
+    return "BARMM";
+  }
+
   if (regionName === "Metropolitan Manila") return "NCR";
   if (regionName === "Cordillera Administrative Region (CAR)") return "CAR";
   if (regionName === "Ilocos Region (Region I)") return "Region I";
@@ -33,6 +39,7 @@ const getDisplayRegionCode = (regionName) => {
   if (regionName === "Davao Region (Region XI)") return "Region XI";
   if (regionName === "SOCCSKSARGEN (Region XII)") return "Region XII";
   if (regionName === "Caraga (Region XIII)") return "CARAGA";
+
   return regionName;
 };
 
@@ -137,7 +144,8 @@ export default function PHMap({
                     geo.properties.region ||
                     "";
 
-                  const level = data[regionName];
+                  const regionCode = getDisplayRegionCode(regionName);
+                  const level = data[regionCode];
                   const visibleLevel = getVisibleLevel(
                     regionName,
                     level,
