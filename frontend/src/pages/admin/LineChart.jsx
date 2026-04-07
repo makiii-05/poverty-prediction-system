@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import AdminLayout from "../../layouts/AdminLayout";
 import PovertyLineChart from "../../components/visualization/VisualizationLineChart";
 import { getRegionYearLevel } from "../../api/DataAPI";
 
@@ -87,7 +86,6 @@ export default function LineChart() {
   }, [rows]);
 
   return (
-    <AdminLayout>
       <div className="space-y-6 p-6">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B95] to-[#0056d2] p-6 text-white shadow-md">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -133,6 +131,5 @@ export default function LineChart() {
           <PovertyLineChart rows={rows} selectedRegion={selectedRegion} />
         )}
       </div>
-    </AdminLayout>
   );
 }

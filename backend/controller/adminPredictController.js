@@ -236,7 +236,12 @@ const savePredictionHistory = async (req, res) => {
 
 const getPredictionHistory = async (req, res) => {
   try {
-    const limit = req.query.limit || 10;
+    startFlask();
+
+    // wait a bit if Flask is just starting
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const limit = parseInt(req.query.limit, 10) || 10;
 
     const response = await fetch(
       `http://127.0.0.1:8000/history?limit=${limit}`,
@@ -248,22 +253,35 @@ const getPredictionHistory = async (req, res) => {
       }
     );
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
 
     if (!response.ok) {
       return res.status(response.status).json({
         success: false,
-        message: data.error || "Fetching prediction history failed",
+        message: data.error || data.message || "Fetching prediction history failed",
       });
     }
 
     return res.status(200).json(data);
   } catch (error) {
+    console.error("getPredictionHistory error:", error);
+
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to fetch prediction history",
     });
   }
+};
+
+module.exports = {
+  getPredictionHistory,
 };
 
 module.exports = {

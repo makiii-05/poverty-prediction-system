@@ -46,9 +46,6 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="text-sm text-slate-600">
         Poverty Level: {item.level}
       </p>
-      <p className="text-sm text-slate-600">
-        Rank Score: {item.score}
-      </p>
     </div>
   );
 };

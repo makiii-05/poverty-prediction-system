@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -6,21 +6,47 @@ import {
 } from "@vnedyalk0v/react19-simple-maps";
 import geoData from "../../data/philippines.json";
 
+const NO_DATA_COLOR = "#e5e7eb";
+
 const getColor = (level) => {
   if (level === "Low") return "#22c55e";
   if (level === "Moderate") return "#eab308";
   if (level === "High") return "#ef4444";
-  return "#e5e7eb";
+  return NO_DATA_COLOR;
 };
 
-const getDisplayRegionName = (regionName) => {
-  if (regionName === "Autonomous Region of Muslim Mindanao (ARMM)")
-    return "BARMM";
+const getDisplayRegionCode = (regionName) => {
+  if (regionName === "Autonomous Region of Muslim Mindanao (ARMM)") return "BARMM";
   if (regionName === "Metropolitan Manila") return "NCR";
+  if (regionName === "Cordillera Administrative Region (CAR)") return "CAR";
+  if (regionName === "Ilocos Region (Region I)") return "Region I";
+  if (regionName === "Cagayan Valley (Region II)") return "Region II";
+  if (regionName === "Central Luzon (Region III)") return "Region III";
+  if (regionName === "CALABARZON (Region IV-A)") return "Region IV";
+  if (regionName === "MIMAROPA (Region IV-B)") return "MIMAROPA";
+  if (regionName === "Bicol Region (Region V)") return "Region V";
+  if (regionName === "Western Visayas (Region VI)") return "Region VI";
+  if (regionName === "Central Visayas (Region VII)") return "Region VII";
+  if (regionName === "Eastern Visayas (Region VIII)") return "Region VIII";
+  if (regionName === "Zamboanga Peninsula (Region IX)") return "Region IX";
+  if (regionName === "Northern Mindanao (Region X)") return "Region X";
+  if (regionName === "Davao Region (Region XI)") return "Region XI";
+  if (regionName === "SOCCSKSARGEN (Region XII)") return "Region XII";
+  if (regionName === "Caraga (Region XIII)") return "CARAGA";
   return regionName;
 };
 
-export default function PHMap({ data, selectedYear }) {
+const getVisibleLevel = (regionName, level, selectedRegion) => {
+  if (!selectedRegion) return level;
+  const regionCode = getDisplayRegionCode(regionName);
+  return regionCode === selectedRegion ? level : null;
+};
+
+export default function PHMap({
+  data,
+  selectedYear,
+  selectedRegion,
+}) {
   const [tooltip, setTooltip] = useState({
     visible: false,
     x: 0,
@@ -29,13 +55,15 @@ export default function PHMap({ data, selectedYear }) {
     level: "",
   });
 
-  const showTooltip = (event, regionName, level) => {
+  const showTooltip = (event, regionName, visibleLevel) => {
+    const regionCode = getDisplayRegionCode(regionName);
+
     setTooltip({
       visible: true,
       x: event.clientX,
       y: event.clientY,
-      region: getDisplayRegionName(regionName),
-      level: level || "No data",
+      region: `${regionCode} - ${regionName}`,
+      level: visibleLevel || "No data",
     });
   };
 
@@ -57,23 +85,39 @@ export default function PHMap({ data, selectedYear }) {
     });
   };
 
+  const summaryCounts = useMemo(() => {
+    const counts = {
+      Low: 0,
+      Moderate: 0,
+      High: 0,
+      "No data": 0,
+    };
+
+    Object.entries(data || {}).forEach(([regionName, level]) => {
+      const visibleLevel = getVisibleLevel(regionName, level, selectedRegion);
+
+      if (visibleLevel === "Low") counts.Low += 1;
+      else if (visibleLevel === "Moderate") counts.Moderate += 1;
+      else if (visibleLevel === "High") counts.High += 1;
+      else counts["No data"] += 1;
+    });
+
+    return counts;
+  }, [data, selectedRegion]);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      
-      {/* TITLE */}
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-slate-800">
           Regional Poverty Level
         </h2>
         <p className="text-sm text-slate-500">
           Philippines — {selectedYear}
+          {selectedRegion ? ` • ${selectedRegion}` : " • All Regions"}
         </p>
       </div>
 
-      {/* 🔥 MAIN LAYOUT */}
       <div className="flex flex-col gap-6 lg:flex-row">
-        
-        {/* 🗺️ MAP */}
         <div className="flex-1">
           <ComposableMap
             projection="geoMercator"
@@ -94,6 +138,11 @@ export default function PHMap({ data, selectedYear }) {
                     "";
 
                   const level = data[regionName];
+                  const visibleLevel = getVisibleLevel(
+                    regionName,
+                    level,
+                    selectedRegion
+                  );
 
                   return (
                     <Geography
@@ -101,17 +150,19 @@ export default function PHMap({ data, selectedYear }) {
                       geography={geo}
                       stroke="#ffffff"
                       strokeWidth={0.8}
-                      onMouseEnter={(e) => showTooltip(e, regionName, level)}
+                      onMouseEnter={(e) =>
+                        showTooltip(e, regionName, visibleLevel)
+                      }
                       onMouseMove={moveTooltip}
                       onMouseLeave={hideTooltip}
                       style={{
                         default: {
-                          fill: getColor(level),
+                          fill: getColor(visibleLevel),
                           outline: "none",
-                          transition: "fill 0.5s ease-in-out",
+                          transition: "fill 0.3s ease-in-out",
                         },
                         hover: {
-                          fill: "#93c5fd",
+                          fill: selectedRegion && !visibleLevel ? NO_DATA_COLOR : "#93c5fd",
                           outline: "none",
                           cursor: "pointer",
                           transition: "fill 0.2s ease-in-out",
@@ -128,36 +179,74 @@ export default function PHMap({ data, selectedYear }) {
           </ComposableMap>
         </div>
 
-        {/* 📊 SIDE SUMMARY (LIKE YOUR IMAGE) */}
-        <div className="w-full max-w-[260px]">
-          <div className="rounded-xl border border-slate-200 p-3">
+        <div className="w-full max-w-[260px] space-y-4">
+          <div className="rounded-xl border border-slate-200 p-4">
             <h3 className="mb-3 text-sm font-semibold text-slate-700">
-              Region Summary
+              Poverty Level Legend
             </h3>
 
-            <div className="flex flex-col gap-2 text-xs">
-              {Object.entries(data).map(([region, level]) => (
-                <div
-                  key={region}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-3 w-3 rounded-sm"
-                      style={{ backgroundColor: getColor(level) }}
-                    />
-                    <span className="text-slate-700">
-                      {getDisplayRegionName(region)}
-                    </span>
-                  </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 rounded-sm border border-slate-200"
+                    style={{ backgroundColor: "#22c55e" }}
+                  />
+                  <span className="text-slate-700">Low</span>
                 </div>
-              ))}
+                <span className="text-slate-500">{summaryCounts.Low}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 rounded-sm border border-slate-200"
+                    style={{ backgroundColor: "#eab308" }}
+                  />
+                  <span className="text-slate-700">Moderate</span>
+                </div>
+                <span className="text-slate-500">{summaryCounts.Moderate}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 rounded-sm border border-slate-200"
+                    style={{ backgroundColor: "#ef4444" }}
+                  />
+                  <span className="text-slate-700">High</span>
+                </div>
+                <span className="text-slate-500">{summaryCounts.High}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 rounded-sm border border-slate-200"
+                    style={{ backgroundColor: NO_DATA_COLOR }}
+                  />
+                  <span className="text-slate-700">No data</span>
+                </div>
+                <span className="text-slate-500">
+                  {summaryCounts["No data"]}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-4">
+            <h3 className="mb-2 text-sm font-semibold text-slate-700">
+              Notes
+            </h3>
+            <p className="text-xs leading-relaxed text-slate-500">
+              {selectedRegion
+                ? "Only the selected region is highlighted. All other regions are shown as No data."
+                : "Colors represent the classified poverty level of each region for the selected year."}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* TOOLTIP */}
       {tooltip.visible && (
         <div
           className="pointer-events-none fixed z-50 rounded-lg border bg-white px-3 py-2 text-xs shadow"

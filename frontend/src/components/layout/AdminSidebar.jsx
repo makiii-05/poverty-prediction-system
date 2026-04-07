@@ -1,33 +1,34 @@
+import { useState } from "react";
 import {
   LayoutDashboard,
   TrendingUp,
   Activity,
   FileBarChart,
-  BarChart3,
-  BarChart,
   Users,
   X,
   ChevronDown,
+  BarChart3,
   Map,
   ChartColumn,
   ChartSpline,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useState } from "react";
 
 export default function AdminSidebar({ isOpen, onClose }) {
   const location = useLocation();
 
-  const [openDropdown, setOpenDropdown] = useState(() =>
-    location.pathname.startsWith("/admin/visualization")
-  );
+  const isVisualizationPath =
+    location.pathname.startsWith("/admin/map") ||
+    location.pathname.startsWith("/admin/bar-chart") ||
+    location.pathname.startsWith("/admin/line-chart");
+
+  const [openDropdown, setOpenDropdown] = useState(() => isVisualizationPath);
 
   const menu = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     { label: "Predict", icon: TrendingUp, path: "/admin/predict" },
     { label: "Data Monitoring", icon: Activity, path: "/admin/data/monitoring" },
     { label: "Reports", icon: FileBarChart, path: "/admin/reports" },
-    //{ label: "System Monitoring", icon: BarChart, path: "/admin/system/monitoring" },
     { label: "Users", icon: Users, path: "/admin/users" },
   ];
 
@@ -36,8 +37,6 @@ export default function AdminSidebar({ isOpen, onClose }) {
     { label: "Bar Chart", icon: ChartColumn, path: "/admin/bar-chart" },
     { label: "Line Chart", icon: ChartSpline, path: "/admin/line-chart" },
   ];
-
-  const isVisualizationActive = location.pathname.startsWith("/admin/visualization");
 
   return (
     <>
@@ -102,7 +101,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
               type="button"
               onClick={() => setOpenDropdown((prev) => !prev)}
               className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-[15px] font-medium transition ${
-                isVisualizationActive
+                isVisualizationPath
                   ? "bg-[#003B95] text-white shadow-sm"
                   : "text-slate-700 hover:bg-[#E8EEF9]"
               }`}
@@ -110,7 +109,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <div className="flex items-center gap-3">
                 <BarChart3
                   className={`h-5 w-5 ${
-                    isVisualizationActive ? "text-white" : "text-slate-500"
+                    isVisualizationPath ? "text-white" : "text-slate-500"
                   }`}
                 />
                 <span>Visualization</span>
@@ -119,7 +118,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <ChevronDown
                 className={`h-4 w-4 transition-transform duration-300 ${
                   openDropdown ? "rotate-180" : ""
-                } ${isVisualizationActive ? "text-white" : "text-slate-500"}`}
+                } ${isVisualizationPath ? "text-white" : "text-slate-500"}`}
               />
             </button>
 

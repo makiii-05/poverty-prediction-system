@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import AdminLayout from "../../layouts/AdminLayout";
 import PovertyBarChart from "../../components/visualization/VisualizationBarChart";
 import { getRegionYearLevel } from "../../api/DataAPI";
 
@@ -76,7 +75,6 @@ export default function BarChart() {
   }, [selectedYear, rows]);
 
   return (
-    <AdminLayout>
       <div className="space-y-6 p-6">
 
         {/* HEADER */}
@@ -131,6 +129,5 @@ export default function BarChart() {
         )}
 
       </div>
-    </AdminLayout>
   );
 }

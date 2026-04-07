@@ -8,12 +8,16 @@ import AdminLoginForm from "./pages/AdminLoginForm";
 // Landing page
 import LandingPage from "./pages/LandingPage";
 
+// User Layout and Admin Layout
+import AdminLayout from "./layouts/AdminLayout";
+import UserLayout from "./layouts/UserLayout";
+
 // User pages
 import UserDashboard from "./pages/user/UserDashboard";
 import RegionalData from "./pages/user/RegionalData";
 import UserPredictions from "./pages/user/UserPrediction";
 import Visualization from "./pages/user/Visualization";
-import Reports from "./pages/user/Reports" ;
+//import Reports from "./pages/user/Reports" ;
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -52,7 +56,7 @@ function App() {
         <Route path="/data" element={<UserRoute><RegionalData /></UserRoute>} />
         <Route path="/predictions" element={<UserRoute><UserPredictions /></UserRoute>} />
         <Route path="/visualization" element={<UserRoute><Visualization /></UserRoute>} />
-        <Route path="/reports" element={<UserRoute><Reports /></UserRoute>} />
+        {/*<Route path="/reports" element={<UserRoute><Reports /></UserRoute>} />*/}
 
         {/* Admin Pages */}
         <Route
@@ -83,17 +87,33 @@ function App() {
 
         <Route
         path="/admin/map"
-        element={<AdminRoute><MapVisualization /></AdminRoute>}
+        element={<AdminRoute><AdminLayout><MapVisualization /></AdminLayout></AdminRoute>}
         />
 
         <Route
         path="/admin/bar-chart"
-        element={<AdminRoute><BarChart /></AdminRoute>}
+        element={<AdminRoute><AdminLayout><BarChart /></AdminLayout></AdminRoute>}
         />
 
         <Route
         path="/admin/line-chart"
-        element={<AdminRoute><LineChart /></AdminRoute>}
+        element={<AdminRoute><AdminLayout><LineChart /></AdminLayout></AdminRoute>}
+        />
+
+        {/*User Visualization*/}
+        <Route
+        path="/visualization/map"
+        element={<UserRoute><UserLayout><MapVisualization /></UserLayout></UserRoute>}
+        />
+
+        <Route
+        path="/visualization/bar-chart"
+        element={<UserRoute><UserLayout><BarChart /></UserLayout></UserRoute>}
+        />
+
+        <Route
+        path="/visualization/line-chart"
+        element={<UserRoute><UserLayout><LineChart /></UserLayout></UserRoute>}
         />
 
         {/*<Route
