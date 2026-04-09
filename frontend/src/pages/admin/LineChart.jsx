@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import PovertyLineChart from "../../components/visualization/VisualizationLineChart";
-import { getRegionYearLevel } from "../../api/DataAPI";
+import { useEffect, useState } from "react";
+import VisualizationLineChart from "../../components/visualization/VisualizationLineChart";
+import { getAllData } from "../../api/DataAPI";
 
 export default function LineChart() {
   const [rows, setRows] = useState([]);
-  const [selectedRegion, setSelectedRegion] = useState("");
   const [loading, setLoading] = useState(true);
 
   const regionNameMap = {
@@ -46,9 +45,10 @@ export default function LineChart() {
       try {
         setLoading(true);
 
-        const result = await getRegionYearLevel();
+        const result = await getAllData();
+        const rawRows = Array.isArray(result) ? result : result.data || [];
 
-        const formattedRows = result.map((item) => {
+        const formattedRows = rawRows.map((item) => {
           const mappedRegion =
             regionNameMap[item.region] ||
             regionNameMap[item.region_name] ||
@@ -63,14 +63,6 @@ export default function LineChart() {
         });
 
         setRows(formattedRows);
-
-        const uniqueRegions = [
-          ...new Set(formattedRows.map((item) => item.displayRegion)),
-        ].sort();
-
-        if (uniqueRegions.length > 0) {
-          setSelectedRegion(uniqueRegions[0]);
-        }
       } catch (err) {
         console.error("Failed to fetch line chart data:", err);
       } finally {
@@ -81,55 +73,30 @@ export default function LineChart() {
     fetchData();
   }, []);
 
-  const regionOptions = useMemo(() => {
-    return [...new Set(rows.map((item) => item.displayRegion))].sort();
-  }, [rows]);
-
   return (
-      <div className="space-y-6 p-6">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B95] to-[#0056d2] p-6 text-white shadow-md">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Line Chart Visualization
-              </h1>
-              <p className="mt-1 text-sm text-blue-100">
-                Poverty level trend by region across years
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs text-blue-200">Selected Region</p>
-                <p className="max-w-[220px] truncate text-lg font-semibold">
-                  {selectedRegion || "-"}
-                </p>
-              </div>
-
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="max-w-[240px] rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur focus:outline-none"
-              >
-                {regionOptions.map((region) => (
-                  <option key={region} value={region} className="text-black">
-                    {region}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <div className="space-y-6 p-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B95] to-[#0056d2] p-6 text-white shadow-md">
+        <div className="flex flex-col gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Line Chart Visualization
+            </h1>
+            <p className="mt-1 text-sm text-blue-100">
+              Socioeconomic indicator trends by region across years
+            </p>
           </div>
-
-          <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         </div>
 
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-500 shadow-sm">
-            Loading chart...
-          </div>
-        ) : (
-          <PovertyLineChart rows={rows} selectedRegion={selectedRegion} />
-        )}
+        <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       </div>
+
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-500 shadow-sm">
+          Loading chart...
+        </div>
+      ) : (
+        <VisualizationLineChart rows={rows} />
+      )}
+    </div>
   );
 }

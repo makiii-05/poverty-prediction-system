@@ -253,16 +253,6 @@ export default function DataMonitoring() {
             </p>
           </div>
 
-          {/* RIGHT (optional info badge) */}
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-white/10 px-4 py-2 text-sm backdrop-blur">
-              Total Records:{" "}
-              <span className="font-semibold">
-                {allData.length}
-              </span>
-            </div>
-          </div>
-
         </div>
 
         {/* Decorative blur */}

@@ -16,16 +16,6 @@ export default function UserManagementHeader({ onRefresh, loading }) {
             </p>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#003B95] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
       </div>
     </div>
   );

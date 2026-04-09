@@ -76,7 +76,7 @@ export default function VisualizationBarChart({ data, selectedYear }) {
       fullName: getFullName(region),
       level,
       score: levelToScore[level] || 0,
-    }));
+    }))
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

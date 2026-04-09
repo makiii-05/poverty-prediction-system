@@ -35,9 +35,11 @@ export default function BarChart() {
         setLoading(true);
 
         const result = await getRegionYearLevel();
-        setRows(result);
+        const safeRows = result || [];
 
-        const uniqueYears = [...new Set(result.map((item) => String(item.year)))].sort();
+        setRows(safeRows);
+
+        const uniqueYears = [...new Set(safeRows.map((item) => String(item.year)))].sort();
         setYears(uniqueYears);
 
         if (uniqueYears.length > 0) {
@@ -54,7 +56,10 @@ export default function BarChart() {
   }, []);
 
   useEffect(() => {
-    if (!selectedYear || rows.length === 0) return;
+    if (!selectedYear || rows.length === 0) {
+      setChartData({});
+      return;
+    }
 
     const filtered = rows.filter(
       (item) => String(item.year) === String(selectedYear)
@@ -75,59 +80,59 @@ export default function BarChart() {
   }, [selectedYear, rows]);
 
   return (
-      <div className="space-y-6 p-6">
-
-        {/* HEADER */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B95] to-[#0056d2] p-6 text-white shadow-md">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-            {/* LEFT */}
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Bar Chart Visualization
-              </h1>
-              <p className="mt-1 text-sm text-blue-100">
-                Poverty level ranking by region
-              </p>
-            </div>
-
-            {/* RIGHT */}
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs text-blue-200">Selected Year</p>
-                <p className="text-lg font-semibold">
-                  {selectedYear || "-"}
-                </p>
-              </div>
-
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur focus:outline-none"
-              >
-                {years.map((year) => (
-                  <option key={year} value={year} className="text-black">
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+    <div className="space-y-6 p-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B95] to-[#0056d2] p-6 text-white shadow-md">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Bar Chart Visualization
+            </h1>
+            <p className="mt-1 text-sm text-blue-100">
+              Poverty level ranking by region
+            </p>
           </div>
-
-          {/* Decorative blur */}
-          <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         </div>
 
-        {/* CONTENT */}
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-500 shadow-sm">
-            Loading chart...
-          </div>
-        ) : (
-          <PovertyBarChart data={chartData} selectedYear={selectedYear} />
-        )}
-
+        <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
       </div>
+
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-500 shadow-sm">
+          Loading chart...
+        </div>
+      ) : (
+        <>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-[180px]">
+                <label className="mb-1 block text-xs font-medium text-slate-500">
+                  Select Year
+                </label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-[#003B95] focus:outline-none"
+                >
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <span className="text-slate-500">Viewing Year:</span>{" "}
+                <span className="font-semibold text-slate-800">
+                  {selectedYear || "-"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <PovertyBarChart data={chartData} selectedYear={selectedYear} />
+        </>
+      )}
+    </div>
   );
 }

@@ -113,51 +113,6 @@ export default function MapPage() {
               Regional poverty level map of the Philippines
             </p>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="text-right">
-              <p className="text-xs text-blue-200">Selected Year</p>
-              <p className="text-lg font-semibold">{selectedYear || "-"}</p>
-            </div>
-
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur focus:outline-none"
-            >
-              {years.map((year) => (
-                <option key={year} value={year} className="text-black">
-                  {year}
-                </option>
-              ))}
-            </select>
-
-            <div className="min-w-[260px]">
-              <p className="mb-1 text-xs text-blue-200">Selected Region</p>
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="w-full rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur focus:outline-none"
-              >
-                <option value="" className="text-black">
-                  All Regions
-                </option>
-                {regionOptions.map((region) => (
-                  <option
-                    key={region.code}
-                    value={region.code}
-                    className="text-black"
-                  >
-                    {region.code} - {region.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs text-blue-100 backdrop-blur">
-          Viewing: {selectedRegionLabel}
         </div>
 
         <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
@@ -168,11 +123,61 @@ export default function MapPage() {
           Loading map...
         </div>
       ) : (
-        <PHMap
-          data={mapData}
-          selectedYear={selectedYear}
-          selectedRegion={selectedRegion}
-        />
+        <>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <div className="min-w-[160px]">
+                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                    Select Year
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-[#003B95] focus:outline-none"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-[260px]">
+                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                    Select Region
+                  </label>
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-[#003B95] focus:outline-none"
+                  >
+                    <option value="">All Regions</option>
+                    {regionOptions.map((region) => (
+                      <option key={region.code} value={region.code}>
+                        {region.code} - {region.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <span className="text-slate-500">Viewing:</span>{" "}
+                <span className="font-semibold text-slate-800">
+                  {selectedRegionLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <PHMap
+            data={mapData}
+            selectedYear={selectedYear}
+            selectedRegion={selectedRegion}
+          />
+        </>
       )}
     </div>
   );

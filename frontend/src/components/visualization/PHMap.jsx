@@ -49,11 +49,7 @@ const getVisibleLevel = (regionName, level, selectedRegion) => {
   return regionCode === selectedRegion ? level : null;
 };
 
-export default function PHMap({
-  data,
-  selectedYear,
-  selectedRegion,
-}) {
+export default function PHMap({ data, selectedYear, selectedRegion }) {
   const [tooltip, setTooltip] = useState({
     visible: false,
     x: 0,
@@ -125,7 +121,7 @@ export default function PHMap({
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-3">
           <ComposableMap
             projection="geoMercator"
             projectionConfig={{
@@ -170,7 +166,10 @@ export default function PHMap({
                           transition: "fill 0.3s ease-in-out",
                         },
                         hover: {
-                          fill: selectedRegion && !visibleLevel ? NO_DATA_COLOR : "#93c5fd",
+                          fill:
+                            selectedRegion && !visibleLevel
+                              ? NO_DATA_COLOR
+                              : "#93c5fd",
                           outline: "none",
                           cursor: "pointer",
                           transition: "fill 0.2s ease-in-out",

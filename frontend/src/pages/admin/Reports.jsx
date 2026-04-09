@@ -50,9 +50,14 @@ export default function Reports() {
       try {
         setLoading(true);
         const result = await getRegionYearLevel();
-        setRows(result || []);
+        const safeRows = result || [];
 
-        const uniqueYears = [...new Set((result || []).map((item) => String(item.year)))].sort();
+        setRows(safeRows);
+
+        const uniqueYears = [
+          ...new Set(safeRows.map((item) => String(item.year))),
+        ].sort();
+
         if (uniqueYears.length > 0) {
           setSelectedYear(uniqueYears[uniqueYears.length - 1]);
         }
@@ -126,7 +131,8 @@ export default function Reports() {
     const highestRiskRow =
       [...reportRows].sort((a, b) => {
         const scoreDiff =
-          (levelScoreMap[b.poverty_level] || 0) - (levelScoreMap[a.poverty_level] || 0);
+          (levelScoreMap[b.poverty_level] || 0) -
+          (levelScoreMap[a.poverty_level] || 0);
 
         if (scoreDiff !== 0) return scoreDiff;
         return a.displayRegion.localeCompare(b.displayRegion);
@@ -144,9 +150,15 @@ export default function Reports() {
   }, [reportRows, history]);
 
   const insights = useMemo(() => {
-    const highRegions = reportRows.filter((item) => item.poverty_level === "High");
-    const moderateRegions = reportRows.filter((item) => item.poverty_level === "Moderate");
-    const lowRegions = reportRows.filter((item) => item.poverty_level === "Low");
+    const highRegions = reportRows.filter(
+      (item) => item.poverty_level === "High"
+    );
+    const moderateRegions = reportRows.filter(
+      (item) => item.poverty_level === "Moderate"
+    );
+    const lowRegions = reportRows.filter(
+      (item) => item.poverty_level === "Low"
+    );
 
     const topRiskText =
       highRegions.length > 0
@@ -176,21 +188,31 @@ export default function Reports() {
       { Metric: "Total Regions", Value: summary.totalRegions },
       { Metric: "Total Predictions", Value: summary.totalPredictions },
       { Metric: "Highest Risk Region", Value: summary.highestRiskRegion },
+      { Metric: "Highest Risk Level", Value: summary.highestRiskLevel },
       { Metric: "Low Poverty Level", Value: summary.low },
       { Metric: "Moderate Poverty Level", Value: summary.moderate },
       { Metric: "High Poverty Level", Value: summary.high },
     ];
 
     const insightsData = [
-      { Section: "Insight 1", Value: insights.topRiskText },
-      { Section: "Insight 2", Value: insights.balanceText },
-      { Section: "Insight 3", Value: insights.midText },
+      { Section: "Risk Insight", Value: insights.topRiskText },
+      { Section: "Stability Insight", Value: insights.balanceText },
+      { Section: "Monitoring Insight", Value: insights.midText },
     ];
 
     const workbook = XLSX.utils.book_new();
 
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryData), "Summary");
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(insightsData), "Insights");
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(summaryData),
+      "Summary"
+    );
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(insightsData),
+      "Insights"
+    );
 
     if (metrics) {
       const modelInfoData = [
@@ -224,12 +246,52 @@ export default function Reports() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-6">
-        <ReportsHeader
-          selectedYear={selectedYear}
-          years={years}
-          onYearChange={setSelectedYear}
-          onGenerateReport={handleGenerateReport}
-        />
+        <ReportsHeader onGenerateReport={handleGenerateReport} />
+
+        {/* FILTER + GENERATE BELOW HEADER */}
+        {!loading && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+
+              {/* LEFT: YEAR SELECT */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <div className="min-w-[180px]">
+                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                    Select Year
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-[#003B95] focus:outline-none"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* VIEWING */}
+                <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <span className="text-slate-500">Viewing Year:</span>{" "}
+                  <span className="font-semibold text-slate-800">
+                    {selectedYear || "-"}
+                  </span>
+                </div>
+              </div>
+
+              {/* RIGHT: GENERATE BUTTON */}
+              <button
+                onClick={handleGenerateReport}
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#003B95] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#002d73] active:scale-[0.98]"
+              >
+                Generate Report
+              </button>
+
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <ReportCard
@@ -260,7 +322,10 @@ export default function Reports() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <InsightsSection insights={insights} />
-          <ModelInfoSection metrics={metrics} metricsLoading={metricsLoading} />
+          <ModelInfoSection
+            metrics={metrics}
+            metricsLoading={metricsLoading}
+          />
         </div>
       </div>
     </AdminLayout>
