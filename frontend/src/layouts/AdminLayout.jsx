@@ -4,31 +4,26 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import BackToTop from "../components/layout/BackToTop";
 
-export default function UserLayout({ children }) {
+export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f8fbff]">
-      
-      {/* ✅ FULL WIDTH HEADER */}
       <Header onMenuClick={() => setSidebarOpen(true)} />
 
-      {/* Body */}
-      <div className="flex">
-        
-        {/* Sidebar */}
-        <AdminSidebar
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+      <AdminSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-        {/* Content */}
-        <main className="flex-1 p-4 sm:p-6">
+      <div className="pt-16 lg:ml-[260px]">
+        <main className="min-h-[calc(100vh-4rem)] p-4 sm:p-6">
           {children}
         </main>
 
+        <Footer />
       </div>
-      <Footer />
+
       <BackToTop />
     </div>
   );

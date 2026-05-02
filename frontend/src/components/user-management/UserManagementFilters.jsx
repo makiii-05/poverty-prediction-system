@@ -1,10 +1,11 @@
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 
 export default function UserManagementFilters({
   search,
   onSearchChange,
   roleFilter,
   onRoleChange,
+  onAddUser,
 }) {
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -19,16 +20,27 @@ export default function UserManagementFilters({
         />
       </div>
 
-      <div className="w-full md:w-52">
-        <select
-          value={roleFilter}
-          onChange={(e) => onRoleChange(e.target.value)}
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#003B95] focus:ring-2 focus:ring-[#003B95]/20"
+      <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+        <button
+          type="button"
+          onClick={onAddUser}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#003B95] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#002f7a] focus:outline-none focus:ring-2 focus:ring-[#003B95]/20"
         >
-          <option value="all">All Roles</option>
-          <option value="admin">Admin</option>
-          <option value="user">User</option>
-        </select>
+          <Plus className="h-4 w-4" />
+          Add User
+        </button>
+
+        <div className="w-full md:w-52">
+          <select
+            value={roleFilter}
+            onChange={(e) => onRoleChange(e.target.value)}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#003B95] focus:ring-2 focus:ring-[#003B95]/20"
+          >
+            <option value="all">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="user">User</option>
+          </select>
+        </div>
       </div>
     </div>
   );

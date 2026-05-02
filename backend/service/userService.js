@@ -40,6 +40,38 @@ const UserService = {
     };
   },
   
+  // Create user with role
+  createUser: async ({ name, address, email, password, role, username }) => {
+    if (!name || !address || !email || !password || !role || !username) {
+      throw new Error("Please fill all the fields!");
+    }
+
+    if (!validatePassword(password)) {
+      throw new Error(
+        "Password must be at least 8 characters long, include uppercase, lowercase, and a special character"
+      );
+    }
+
+    const emailExists = await User.checkEmail(email);
+    if (emailExists) {
+      throw new Error("Email already exists");
+    }
+
+    const userId = await User.create({
+      name,
+      address,
+      email,
+      password,
+      role, // use the selected role
+      username
+    });
+
+    return {
+      message: "User created successfully",
+      userId
+    };
+  },
+
   // Login using username
     login: async ({ username, password }) => {
         if (!username || !password) {

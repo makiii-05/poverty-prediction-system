@@ -18,6 +18,24 @@ export const registerUser = async (name, address, email, password, username) => 
   return data;
 };
 
+// User Creation API
+export const createUser = async (userData) => {
+  const res = await fetch(`${BASE_URL}/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(userData)
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "User creation failed");
+  }
+
+  return data;
+};
+
 export const loginUser = async (username, password) => {
   const res = await fetch(`${BASE_URL}/login`, {
     method: "POST",

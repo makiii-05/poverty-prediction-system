@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   MapPin,
   TrendingUp,
-  FileText,
   X,
   BarChart3,
   ChevronDown,
@@ -32,8 +31,7 @@ export default function UserSidebar({ isOpen, onClose }) {
     { label: "Line Chart", icon: ChartSpline, path: "/visualization/line-chart" },
   ];
 
-  const isVisualizationActive =
-    location.pathname.startsWith("/visualization");
+  const isVisualizationActive = location.pathname.startsWith("/visualization");
 
   return (
     <>
@@ -45,7 +43,7 @@ export default function UserSidebar({ isOpen, onClose }) {
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 h-screen w-[260px] border-r bg-white px-4 py-6 transition-transform duration-300 lg:static lg:z-auto lg:translate-x-0 ${
+        className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-[260px] overflow-y-auto border-r bg-white px-4 py-6 transition-transform duration-300 lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -93,7 +91,6 @@ export default function UserSidebar({ isOpen, onClose }) {
             );
           })}
 
-          {/* Visualization Dropdown */}
           <div className="rounded-xl">
             <button
               type="button"

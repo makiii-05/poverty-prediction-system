@@ -8,21 +8,22 @@ export default function UserLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8fbff]">
+    <div className="min-h-screen bg-[#f8fbff]">
       <Header onMenuClick={() => setSidebarOpen(true)} />
 
-      <div className="flex flex-1">
-        <UserSidebar
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+      <UserSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-        <main className="flex-1 p-4 sm:p-6">
+      <div className="pt-16 lg:ml-[260px]">
+        <main className="min-h-[calc(100vh-4rem)] p-4 sm:p-6">
           {children}
         </main>
+
+        <Footer />
       </div>
 
-      <Footer />
       <BackToTop />
     </div>
   );

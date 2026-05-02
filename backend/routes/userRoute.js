@@ -28,5 +28,6 @@ router.put("/:id/change-password", verifyToken, UserController.changePassword);
 // Admin-only routes
 router.get("/", verifyToken, verifyAdmin, UserController.getAllUsers);
 router.delete("/:id", verifyToken, verifyAdmin, UserController.deleteUser);
+router.post("/create", verifyToken, verifyAdmin, UserController.createUser);
 
 module.exports = router;

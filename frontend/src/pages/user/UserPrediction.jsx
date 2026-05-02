@@ -92,53 +92,128 @@ export default function UserPrediction() {
   const [error, setError] = useState("");
   const [showVisualization, setShowVisualization] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+const handleChange = (e) => {
+  const { name, value } = e.target;
 
+  // Region (no validation)
+  if (name === "region") {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
+    return;
+  }
+
+  // Allow empty
+  if (value === "") {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setError("");
+    return;
+  }
+
+  // Block negative sign
+  if (value.includes("-")) {
+    setError("Negative values are not allowed");
+  } else {
+    const numValue = Number(value);
+
+    if (!Number.isNaN(numValue)) {
+      if (numValue < 0) {
+        setError("Negative values are not allowed");
+      } 
+      else if (name === "year" && numValue <= 2023) {
+        setError("Year must not be below 2023");
+      } 
+      else {
+        setError("");
+      }
+    }
+  }
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
 
   const handlePredict = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setResult(null);
+  e.preventDefault();
 
-    try {
-      const payload = {
-        ...formData,
-        year: Number(formData.year),
-        ave_income: Number(formData.ave_income),
-        expenditure: Number(formData.expenditure),
-        unemployment_rate: Number(formData.unemployment_rate),
-        mean_years_education: Number(formData.mean_years_education),
-        population_size: Number(formData.population_size),
-      };
+  const numericFields = [
+    "year",
+    "ave_income",
+    "expenditure",
+    "unemployment_rate",
+    "mean_years_education",
+    "population_size",
+  ];
 
-      const res = await fetch("/api/prediction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || data.error || "Prediction failed");
-      }
-
-      const predicted = data.result || data.poverty_level;
-      setResult(predicted);
-    } catch (err) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+  // Check empty fields
+  for (const field of numericFields) {
+    if (formData[field] === "") {
+      setError("Please fill in all required fields.");
+      return;
     }
-  };
+  }
+
+  // Check region
+  if (!formData.region) {
+    setError("Please select a region.");
+    return;
+  }
+
+  // Check negative numbers
+  for (const field of numericFields) {
+    if (Number(formData[field]) < 0) {
+      setError("Negative numbers are not allowed.");
+      return;
+    }
+  }
+
+  // Check year limit
+  if (Number(formData.year) <= 2023) {
+    setError("Year must not below 2023.");
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+  setResult(null);
+
+  try {
+    const payload = {
+      ...formData,
+      year: Number(formData.year),
+      ave_income: Number(formData.ave_income),
+      expenditure: Number(formData.expenditure),
+      unemployment_rate: Number(formData.unemployment_rate),
+      mean_years_education: Number(formData.mean_years_education),
+      population_size: Number(formData.population_size),
+    };
+
+    const res = await fetch("/api/prediction", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || data.error || "Prediction failed");
+    }
+
+    const predicted = data.result || data.poverty_level;
+    setResult(predicted);
+  } catch (err) {
+    setError(err.message || "Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleReset = () => {
     setFormData({

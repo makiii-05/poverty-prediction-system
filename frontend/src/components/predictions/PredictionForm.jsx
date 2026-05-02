@@ -38,10 +38,10 @@ export default function PredictionForm({
             label="Year"
             name="year"
             type="number"
-            min="0"
+            min="2026"
             value={formData.year}
             onChange={onChange}
-            placeholder="e.g. 2026"
+            placeholder="e.g. 2023"
             icon={<CalendarDays className="h-4 w-4" />}
           />
 

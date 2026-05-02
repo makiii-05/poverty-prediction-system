@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import {
   getAllUser,
+  registerUser,
   updateUser,
   deleteUser,
   changeUserPassword,
+  createUser
 } from "../../api/UserLoginAPI";
 import { verifyAdminPassword } from "../../api/AdminActionAPI";
 
@@ -14,6 +16,7 @@ import UserManagementFilters from "../../components/user-management/UserManageme
 import UserManagementTable from "../../components/user-management/UserManagementTable";
 import UserManagementMobileCards from "../../components/user-management/UserManagementMobileCards";
 import UserManagementEmptyState from "../../components/user-management/UserManagementEmptyState";
+import AddUserModal from "../../components/user-management/AddUserModal";
 import EditUserModal from "../../components/user-management/EditUserModal";
 import DeleteUserModal from "../../components/user-management/DeleteUserModal";
 import ChangePasswordModal from "../../components/user-management/ChangePasswordModal";
@@ -28,6 +31,8 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState("all");
 
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -96,6 +101,19 @@ export default function UserManagement() {
   const handleOpenPassword = (user) => {
     setSelectedUser(user);
     setPasswordOpen(true);
+  };
+
+  const handleCreateUser = async (newUserData) => {
+    try {
+      setActionLoading(true);
+      await createUser(newUserData);
+      setAddOpen(false);
+      await fetchUsers();
+    } catch (err) {
+      alert(err.message || "Failed to create user.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleUpdateUser = async (updatedData) => {
@@ -168,6 +186,7 @@ export default function UserManagement() {
               onSearchChange={setSearch}
               roleFilter={roleFilter}
               onRoleChange={setRoleFilter}
+              onAddUser={() => setAddOpen(true)}
             />
 
             {error && (
@@ -208,6 +227,13 @@ export default function UserManagement() {
           </div>
         </div>
       </div>
+
+      <AddUserModal
+        open={addOpen}
+        loading={actionLoading}
+        onClose={() => setAddOpen(false)}
+        onSave={handleCreateUser}
+      />
 
       <EditUserModal
         open={editOpen}

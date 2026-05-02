@@ -71,7 +71,7 @@ export default function Header({ onMenuClick }) {
     <>
       {loading && <FullscreenLoader text="Processing..." />}
 
-      <header className="w-full border-b border-slate-200 bg-white">
+      <header className="w-full border-b border-slate-200 bg-white fixed z-50 top-0">
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -120,17 +120,6 @@ export default function Header({ onMenuClick }) {
 
             {openMenu && (
               <div className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                <button
-                  onClick={() => {
-                    setOpenMenu(false);
-                    window.location.href = "/settings";
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-100"
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </button>
-
                 <div className="h-px bg-slate-200"></div>
 
                 <button

@@ -22,39 +22,69 @@ const UserController = {
     }
   },
 
+  // create user controller with role
+  createUser: async (req, res) => {
+      try {
+        const { name, address, email, password, role, username } = req.body;
+
+        const result = await UserService.createUser({
+          name,
+          address,
+          email,
+          password,
+          role,
+          username
+        });
+
+        return res.status(201).json(result);
+      } catch (error) {
+        return res.status(400).json({
+          message: error.message
+        });
+      }
+    },
+
   login: async (req, res) => {
-    try {
-      const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
+    console.log("Login attempt:", username);
 
-      const user = await UserService.login({ username, password });
+    const user = await UserService.login({ username, password });
+    console.log("UserService.login success:", user?.username);
 
-      const token = jwt.sign(
-        {
-          id: user.id,
-          role: user.role,
-          username: user.username
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
+    const token = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+        username: user.username
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        maxAge: 24 * 60 * 60 * 1000
-      });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000
+    });
 
-      return res.status(200).json({
-        message: "Login successful",
-        user
-      });
-    } catch (error) {
-      return res.status(401).json({
-        message: error.message
-      });
-    }
-  },
+    return res.status(200).json({
+      message: "Login successful",
+      user
+    });
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+
+    const isConnectionError =
+      error.message.includes("ETIMEDOUT") ||
+      error.message.includes("ECONNREFUSED");
+
+    return res.status(isConnectionError ? 500 : 401).json({
+      message: error.message
+    });
+  }
+},
 
   logout: async (req, res) => {
     res.clearCookie("token");
