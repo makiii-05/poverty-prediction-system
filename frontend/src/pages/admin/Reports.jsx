@@ -5,7 +5,7 @@ import { FileText, TrendingUp, AlertTriangle, Download } from "lucide-react";
 
 import AdminLayout from "../../layouts/AdminLayout";
 import { getRegionYearLevel } from "../../api/DataAPI";
-import { getModelMetrics } from "../../api/modelMetrics";
+import { getModelMetrics } from "../../api/ModelMetrics";
 import { getPredictionHistory } from "../../api/AdminPredictAPI";
 
 import ReportsHeader from "../../components/reports/ReportsHeader";
