@@ -7,7 +7,7 @@ const cookieParser = require("cookie-parser");
 
 // Routes
 const userRoutes = require("./routes/userRoute");
-const dataRoute = require("./routes/dataRoute"); 
+const dataRoute = require("./routes/dataRoute");
 const predictionRoute = require("./routes/predictionRoute");
 const datasetRoute = require("./routes/datasetRoute");
 const adminPredictionRoute = require("./routes/adminPredictRoute");
@@ -17,23 +17,31 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
+// CORS
 const corsOptions = {
   origin: (origin, callback) => {
     console.log("Request origin:", origin);
 
-    if (!origin) return callback(null, true);
+    // Allow Postman/server-to-server requests
+    if (!origin) {
+      return callback(null, true);
+    }
 
-    const isAllowed =
-      allowedOrigins.includes(origin) ||
-      origin.endsWith(".vercel.app");
+    // Allow local frontend
+    if (
+      origin.includes("localhost") ||
+      origin.includes("127.0.0.1")
+    ) {
+      return callback(null, true);
+    }
 
-    if (isAllowed) {
+    // Allow Vercel frontend URLs
+    if (origin.endsWith(".vercel.app")) {
+      return callback(null, true);
+    }
+
+    // Allow exact frontend URL from Render env
+    if (origin === process.env.FRONTEND_URL) {
       return callback(null, true);
     }
 
@@ -75,6 +83,7 @@ app.get("/", (req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err);
+
   res.status(500).json({
     message: "Internal server error",
     error: err.message,
