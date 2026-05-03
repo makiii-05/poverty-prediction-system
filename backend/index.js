@@ -17,6 +17,7 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
+// ✅ Allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -24,26 +25,30 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      console.log("Request origin:", origin);
+// ✅ CORS options (FINAL FIX)
+const corsOptions = {
+  origin: (origin, callback) => {
+    console.log("Request origin:", origin);
 
-      if (!origin) return callback(null, true);
+    // Allow requests without origin (Postman, server-to-server)
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      return callback(null, false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.options("*", cors());
+// ✅ Apply CORS
+app.use(cors(corsOptions));
+
+// ✅ VERY IMPORTANT (fix preflight)
+app.options(/.*/, cors(corsOptions));
 
 // Middleware
 app.use(express.json());
