@@ -17,31 +17,33 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
-// ✅ Allow localhost, LAN, and deployed frontend
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // ← your Vercel URL
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "https://poverty-prediction-system-cmzt.vercel.app",
+  process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-const lanOriginRegex =
-  /^http:\/\/((192\.168\.\d{1,3}\.\d{1,3})|(10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})):\d+$/;
-
-// ✅ CORS FIX
 app.use(
   cors({
     origin: (origin, callback) => {
+      console.log("Request origin:", origin);
+
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin) || lanOriginRegex.test(origin)) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
+      return callback(null, false);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.options("*", cors());
 
 // Middleware
 app.use(express.json());
