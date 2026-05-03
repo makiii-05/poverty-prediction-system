@@ -1,5 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-const db = require("./config/db"); // adjust path if needed
+const db = require("./config/db");
 
 const express = require("express");
 const cors = require("cors");
@@ -17,21 +17,23 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
-const allowedLocalhost = new Set([
+// ✅ Allow localhost, LAN, and deployed frontend
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // ← your Vercel URL
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-]);
+].filter(Boolean);
 
 const lanOriginRegex =
   /^http:\/\/((192\.168\.\d{1,3}\.\d{1,3})|(10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})):\d+$/;
 
+// ✅ CORS FIX
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow Postman / server-to-server / requests without Origin header
       if (!origin) return callback(null, true);
 
-      if (allowedLocalhost.has(origin) || lanOriginRegex.test(origin)) {
+      if (allowedOrigins.includes(origin) || lanOriginRegex.test(origin)) {
         return callback(null, true);
       }
 
@@ -71,10 +73,11 @@ app.use((err, req, res, next) => {
   console.error("Error:", err);
   res.status(500).json({
     message: "Internal server error",
-    error: err.message
+    error: err.message,
   });
 });
 
+// DB connection
 db.getConnection()
   .then((conn) => {
     console.log("✅ MySQL connected");
@@ -84,6 +87,7 @@ db.getConnection()
     console.error("❌ MySQL connection failed:", err);
   });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 const HOST = "0.0.0.0";
 
