@@ -14,9 +14,7 @@ const adminPredictionRoute = require("./routes/adminPredictRoute");
 const adminActionRoute = require("./routes/adminActionRoute");
 const modelMetrics = require("./routes/modelMetricsRoute");
 const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
-const { startFlask } = require("./utils/startFlask");
 
-// start flask
 const app = express();
 
 const allowedLocalhost = new Set([
@@ -91,5 +89,4 @@ const HOST = "0.0.0.0";
 
 app.listen(PORT, HOST, () => {
   console.log(`✅ Server running at http://${HOST}:${PORT}/`);
-  startFlask();
 });

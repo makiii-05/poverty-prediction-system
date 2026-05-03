@@ -1,8 +1,10 @@
-const { startFlask } = require("../utils/startFlask");
-
 const XLSX = require("xlsx");
 const fs = require("fs");
 
+// ✅ ML SERVICE BASE URL
+const ML_URL = process.env.ML_SERVICE_URL;
+
+// ---------------- NORMALIZATION ----------------
 const normalizeKey = (key) =>
   String(key).trim().toLowerCase().replace(/\s+/g, "_");
 
@@ -11,10 +13,6 @@ const normalizeRow = (row) => {
 
   Object.keys(row || {}).forEach((key) => {
     const cleanKey = normalizeKey(key);
-
-    // ✅ DEBUG: show key transformation
-    console.log("ORIGINAL KEY:", key);
-    console.log("NORMALIZED KEY:", cleanKey);
 
     if (cleanKey === "region") normalized.region = row[key];
     else if (cleanKey === "year") normalized.year = row[key];
@@ -34,10 +32,7 @@ const normalizeRow = (row) => {
       cleanKey === "population"
     ) {
       normalized.population_size = row[key];
-    }
-
-    // IMPORTANT FIELD
-    else if (
+    } else if (
       cleanKey === "poverty_incidence" ||
       cleanKey === "povertyincidence"
     ) {
@@ -45,30 +40,22 @@ const normalizeRow = (row) => {
     }
   });
 
-  // DEBUG: show final result
-  console.log("FINAL NORMALIZED ROW:", normalized);
-
   return normalized;
 };
 
 const parseUploadFile = (filePath) => {
   const workbook = XLSX.readFile(filePath);
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
+  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
   const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-  
-  // APPLY NORMALIZATION
-  const rows = rawRows.map((row) => normalizeRow(row));
-  
-  // DEBUG
-  console.log("ROWS AFTER NORMALIZATION:", rows);
 
-  return rows.map(normalizeRow);
+  return rawRows.map(normalizeRow);
 };
+
+// ---------------- ML CALLS ----------------
 
 const predictAdminPovertyLevel = async (req, res) => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/predict-admin", {
+    const response = await fetch(`${ML_URL}/predict-admin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -96,7 +83,7 @@ const predictAdminPovertyLevel = async (req, res) => {
 
 const saveAdminPrediction = async (req, res) => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/save-prediction", {
+    const response = await fetch(`${ML_URL}/save-prediction`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -126,11 +113,6 @@ const uploadAndPredictBulk = async (req, res) => {
   let filePath = null;
 
   try {
-    startFlask();
-
-    // wait a bit if Flask is just starting
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -141,14 +123,7 @@ const uploadAndPredictBulk = async (req, res) => {
     filePath = req.file.path;
     const rows = parseUploadFile(filePath);
 
-    if (!rows.length) {
-      return res.status(400).json({
-        success: false,
-        message: "The uploaded file is empty",
-      });
-    }
-
-    const response = await fetch("http://127.0.0.1:8000/predict-bulk", {
+    const response = await fetch(`${ML_URL}/predict-bulk`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -169,7 +144,7 @@ const uploadAndPredictBulk = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message || "Prediction failed",
+      message: error.message,
     });
   } finally {
     if (filePath && fs.existsSync(filePath)) {
@@ -180,7 +155,7 @@ const uploadAndPredictBulk = async (req, res) => {
 
 const saveBulkPredictions = async (req, res) => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/save-bulk-predictions", {
+    const response = await fetch(`${ML_URL}/save-bulk-predictions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -208,7 +183,7 @@ const saveBulkPredictions = async (req, res) => {
 
 const savePredictionHistory = async (req, res) => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/save-history", {
+    const response = await fetch(`${ML_URL}/save-history`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -236,52 +211,19 @@ const savePredictionHistory = async (req, res) => {
 
 const getPredictionHistory = async (req, res) => {
   try {
-    startFlask();
-
-    // wait a bit if Flask is just starting
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
     const limit = parseInt(req.query.limit, 10) || 10;
 
-    const response = await fetch(
-      `http://127.0.0.1:8000/history?limit=${limit}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await fetch(`${ML_URL}/history?limit=${limit}`);
 
-    const text = await response.text();
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { error: text };
-    }
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        success: false,
-        message: data.error || data.message || "Fetching prediction history failed",
-      });
-    }
+    const data = await response.json();
 
     return res.status(200).json(data);
   } catch (error) {
-    console.error("getPredictionHistory error:", error);
-
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch prediction history",
+      message: error.message,
     });
   }
-};
-
-module.exports = {
-  getPredictionHistory,
 };
 
 module.exports = {
