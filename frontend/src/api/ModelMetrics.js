@@ -1,4 +1,4 @@
-const BASE_URL = "/api/model-metrics";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/model-metrics`;
 
 export const getModelMetrics = async () => {
   const res = await fetch(BASE_URL, {

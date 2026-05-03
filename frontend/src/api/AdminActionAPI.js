@@ -1,4 +1,4 @@
-const BASE_URL = "/api/verify";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/verify`;
 
 export const verifyAdminPassword = async (password) => {
   const res = await fetch(`${BASE_URL}/password`, {

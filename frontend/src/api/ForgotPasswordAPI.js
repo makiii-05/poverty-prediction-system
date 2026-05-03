@@ -1,4 +1,4 @@
-const BASE_URL = "/api/password";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/password`;
 
 export const forgotPassword = async (email) => {
   const res = await fetch(`${BASE_URL}/forgot-password`, {

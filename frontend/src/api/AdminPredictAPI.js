@@ -1,4 +1,4 @@
-const BASE_URL = "/api/admin-predictions";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/admin-predictions`;
 
 export const predictAdmin = async (formData) => {
   const response = await fetch(`${BASE_URL}/predict`, {

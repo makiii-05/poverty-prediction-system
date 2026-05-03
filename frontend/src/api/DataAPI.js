@@ -1,5 +1,4 @@
-const BASE_URL = "/api/data";
-
+const BASE_URL = `${import.meta.env.VITE_API_URL}/data`;
 // -----------------------------
 // GET ALL DATA
 // -----------------------------
