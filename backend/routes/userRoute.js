@@ -7,7 +7,7 @@ const loginLimit = require("../middleware/loginLimiter");
 
 // Public routes
 router.post("/register", UserController.register);
-router.post("/login", loginLimit, UserController.login);
+router.post("/login", UserController.login);
 
 // Protected routes (logged-in users)
 router.post("/logout", verifyToken, UserController.logout);
