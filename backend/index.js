@@ -17,23 +17,23 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
-// ✅ Allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "https://poverty-prediction-system-cmzt.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-// ✅ CORS options (FINAL FIX)
 const corsOptions = {
   origin: (origin, callback) => {
     console.log("Request origin:", origin);
 
-    // Allow requests without origin (Postman, server-to-server)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      origin.endsWith(".vercel.app");
+
+    if (isAllowed) {
       return callback(null, true);
     }
 
@@ -44,10 +44,7 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// ✅ Apply CORS
 app.use(cors(corsOptions));
-
-// ✅ VERY IMPORTANT (fix preflight)
 app.options(/.*/, cors(corsOptions));
 
 // Middleware
