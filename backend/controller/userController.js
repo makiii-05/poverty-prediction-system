@@ -64,8 +64,8 @@ const UserController = {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production", // true on Render, false on localhost
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" required for cross-site cookies
       maxAge: 24 * 60 * 60 * 1000
     });
 
