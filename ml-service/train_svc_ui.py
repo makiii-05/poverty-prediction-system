@@ -3,6 +3,7 @@ import json
 import joblib
 import time
 import threading
+import tkinter.font as tkfont
 import customtkinter as ctk
 
 from classification.preprocess import load_and_prepare_data
@@ -15,69 +16,58 @@ from sklearn.metrics import (
     accuracy_score,
     classification_report,
     confusion_matrix,
-    f1_score
+    f1_score,
 )
-
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 # ── Palette ────────────────────────────────────────────────────────────────────
-BG_BASE      = "#0D0D0D"   # window / outermost
-BG_PANEL     = "#141414"   # left / right panels
-BG_CARD      = "#1A1A1A"   # cards inside center
-BG_ROW       = "#1E1E1E"   # step rows, table rows
-BG_ACTIVE    = "#0F2340"   # active step highlight
-BG_DONE      = "#0D2318"   # done step highlight
-BG_ERROR     = "#2A0D0D"   # error step highlight
+BG_BASE    = "#0A0A0A"
+BG_PANEL   = "#111111"
+BG_CARD    = "#161616"
+BG_ROW     = "#181818"
+BG_INPUT   = "#1C1C1C"
 
-ACCENT       = "#2563EB"   # primary blue
-ACCENT_HOVER = "#1D4ED8"
-SUCCESS      = "#22C55E"
-DANGER       = "#EF4444"
-WARNING      = "#F59E0B"
+BORDER     = "#242424"
+BORDER_MD  = "#2E2E2E"
 
-TEXT_PRIMARY   = "#F0F0F0"
-TEXT_SECONDARY = "#9A9A9A"
-TEXT_MUTED     = "#555555"
+ACCENT        = "#2563EB"
+ACCENT_HOVER  = "#1D4ED8"
+ACCENT_DIM    = "#0F2340"
+ACCENT_TEXT   = "#93C5FD"
 
-FONT_TITLE    = ("SF Pro Display", 26, "bold")
-FONT_HEADING  = ("SF Pro Display", 15, "bold")
-FONT_SUBHEAD  = ("SF Pro Text",    13, "bold")
-FONT_BODY     = ("SF Pro Text",    13)
-FONT_SMALL    = ("SF Pro Text",    11)
-FONT_MONO     = ("JetBrains Mono", 12)
-FONT_METRIC   = ("SF Pro Display", 26, "bold")
-FONT_PCT      = ("SF Pro Display", 32, "bold")
+SUCCESS       = "#22C55E"
+SUCCESS_DIM   = "#052E16"
+SUCCESS_TEXT  = "#86EFAC"
 
-# Fall back to system fonts if SF Pro / JetBrains Mono unavailable
-import tkinter.font as tkfont
+DANGER        = "#EF4444"
+DANGER_DIM    = "#2A0808"
+DANGER_TEXT   = "#FCA5A5"
+
+TEXT_PRIMARY   = "#F5F5F5"
+TEXT_SECONDARY = "#888888"
+TEXT_MUTED     = "#444444"
+TEXT_FAINT     = "#333333"
 
 
-def _safe_font(preferred_family, size, *styles):
-    """Return a CTkFont using preferred_family or fall back to system fonts."""
+# ── Font helper ────────────────────────────────────────────────────────────────
+def _font(family, size, weight="normal"):
     available = tkfont.families()
     fallbacks = {
         "SF Pro Display": ["Helvetica Neue", "Helvetica", "Arial"],
         "SF Pro Text":    ["Helvetica Neue", "Helvetica", "Arial"],
         "JetBrains Mono": ["Cascadia Code", "Consolas", "Courier New", "Courier"],
     }
-    family = preferred_family
-    if preferred_family not in available:
-        for alt in fallbacks.get(preferred_family, []):
+    resolved = family
+    if family not in available:
+        for alt in fallbacks.get(family, []):
             if alt in available:
-                family = alt
+                resolved = alt
                 break
         else:
-            family = "TkDefaultFont"
-    return ctk.CTkFont(family=family, size=size, weight=styles[0] if styles else "normal")
-
-
-# ── Helper: thin separator ─────────────────────────────────────────────────────
-def HSep(parent, color="#2A2A2A", pady=(0, 0)):
-    f = ctk.CTkFrame(parent, height=1, fg_color=color)
-    f.pack(fill="x", padx=0, pady=pady)
-    return f
+            resolved = "TkDefaultFont"
+    return ctk.CTkFont(family=resolved, size=size, weight="bold")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -97,14 +87,22 @@ class TrainingDashboard(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-
         self.title("SVC Training Dashboard")
-        self.geometry("1260x780")
-        self.minsize(1100, 680)
+        self.geometry("1100x680")
+        self.minsize(960, 600)
         self.configure(fg_color=BG_BASE)
 
-        self._step_widgets = {}   # step_name → {"row", "icon", "label"}
-        self._training_thread = None
+        self._step_widgets: dict = {}
+        self._training_thread: threading.Thread | None = None
+
+        # Typed placeholders to silence linters
+        self._r_time:    ctk.CTkLabel
+        self._r_model:   ctk.CTkLabel
+        self._r_metrics: ctk.CTkLabel
+        self._r_kernel:  ctk.CTkLabel
+        self._r_C:       ctk.CTkLabel
+        self._r_gamma:   ctk.CTkLabel
+        self._r_test:    ctk.CTkLabel
 
         self._build_ui()
 
@@ -115,12 +113,11 @@ class TrainingDashboard(ctk.CTk):
     def _build_ui(self):
         self._build_topbar()
 
-        # Three-column body
         body = ctk.CTkFrame(self, fg_color=BG_BASE)
         body.pack(fill="both", expand=True)
-        body.grid_columnconfigure(0, weight=0, minsize=270)
+        body.grid_columnconfigure(0, weight=0, minsize=210)
         body.grid_columnconfigure(1, weight=1)
-        body.grid_columnconfigure(2, weight=0, minsize=300)
+        body.grid_columnconfigure(2, weight=0, minsize=210)
         body.grid_rowconfigure(0, weight=1)
 
         left   = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=0)
@@ -128,7 +125,7 @@ class TrainingDashboard(ctk.CTk):
         right  = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=0)
 
         left.grid  (row=0, column=0, sticky="nsew")
-        center.grid(row=0, column=1, sticky="nsew", padx=1)
+        center.grid(row=0, column=1, sticky="nsew", padx=(1, 1))
         right.grid (row=0, column=2, sticky="nsew")
 
         self._build_left(left)
@@ -137,90 +134,96 @@ class TrainingDashboard(ctk.CTk):
 
     # ── Topbar ─────────────────────────────────────────────────────────────────
     def _build_topbar(self):
-        bar = ctk.CTkFrame(self, height=68, fg_color="#111111", corner_radius=0)
+        bar = ctk.CTkFrame(self, height=52, fg_color=BG_CARD, corner_radius=0)
         bar.pack(fill="x")
         bar.pack_propagate(False)
 
-        # Left: title + subtitle
-        title_wrap = ctk.CTkFrame(bar, fg_color="transparent")
-        title_wrap.place(x=28, y=10)
+        # Left
+        left_wrap = ctk.CTkFrame(bar, fg_color="transparent")
+        left_wrap.place(x=16, rely=0.5, anchor="w")
 
         ctk.CTkLabel(
-            title_wrap,
+            left_wrap,
             text="SVC Training Dashboard",
-            font=_safe_font("SF Pro Display", 20, "bold"),
+            font=_font("SF Pro Display", 14, "bold"),
             text_color=TEXT_PRIMARY,
-        ).pack(anchor="w")
+        ).pack(side="left")
 
         ctk.CTkLabel(
-            title_wrap,
-            text="Support vector classifier  ·  StandardScaler pipeline",
-            font=_safe_font("SF Pro Text", 12),
-            text_color=TEXT_SECONDARY,
-        ).pack(anchor="w")
+            left_wrap,
+            text="  ·  StandardScaler · rbf kernel",
+            font=_font("SF Pro Text", 12),
+            text_color=TEXT_MUTED,
+        ).pack(side="left")
 
-        # Right: status badge + buttons
+        # Right
         right_wrap = ctk.CTkFrame(bar, fg_color="transparent")
-        right_wrap.place(relx=1.0, rely=0.5, anchor="e", x=-24)
+        right_wrap.place(relx=1.0, rely=0.5, anchor="e", x=-16)
 
         self._status_badge = ctk.CTkLabel(
             right_wrap,
             text="● Ready",
-            font=_safe_font("SF Pro Text", 12),
+            font=_font("SF Pro Text", 11),
             text_color=TEXT_MUTED,
-            fg_color="#252525",
+            fg_color=BG_INPUT,
             corner_radius=100,
-            padx=12,
-            pady=4,
+            padx=10,
+            pady=3,
         )
-        self._status_badge.pack(side="left", padx=(0, 10))
+        self._status_badge.pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(
             right_wrap,
             text="Clear",
-            width=90,
-            height=34,
-            fg_color="#252525",
-            hover_color="#303030",
+            width=72,
+            height=28,
+            fg_color=BG_INPUT,
+            hover_color=BORDER_MD,
             text_color=TEXT_PRIMARY,
-            font=_safe_font("SF Pro Text", 13),
-            corner_radius=8,
+            font=_font("SF Pro Text", 12),
+            border_width=1,
+            border_color=BORDER,
+            corner_radius=6,
             command=self._clear,
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 6))
 
         self._start_btn = ctk.CTkButton(
             right_wrap,
             text="Start training",
-            width=130,
-            height=34,
+            width=110,
+            height=28,
             fg_color=ACCENT,
             hover_color=ACCENT_HOVER,
             text_color="#FFFFFF",
-            font=_safe_font("SF Pro Text", 13, "bold"),
-            corner_radius=8,
+            font=_font("SF Pro Text", 12, "bold"),
+            corner_radius=6,
             command=self._start_training,
         )
         self._start_btn.pack(side="left")
 
-        # Bottom border on topbar
-        ctk.CTkFrame(self, height=1, fg_color="#222222").pack(fill="x")
+        # Border
+        ctk.CTkFrame(self, height=1, fg_color=BORDER).pack(fill="x")
 
-    # ── Left panel: progress + steps ──────────────────────────────────────────
+    # ── Left panel ────────────────────────────────────────────────────────────
     def _build_left(self, parent):
-        wrap = ctk.CTkScrollableFrame(parent, fg_color="transparent", scrollbar_button_color="#2A2A2A")
-        wrap.pack(fill="both", expand=True, padx=0, pady=0)
+        wrap = ctk.CTkScrollableFrame(
+            parent, fg_color="transparent",
+            scrollbar_button_color=BORDER_MD,
+            scrollbar_button_hover_color="#3A3A3A",
+        )
+        wrap.pack(fill="both", expand=True)
 
         # Progress block
-        prog_card = ctk.CTkFrame(wrap, fg_color=BG_CARD, corner_radius=12)
-        prog_card.pack(fill="x", padx=18, pady=(18, 0))
+        prog = ctk.CTkFrame(wrap, fg_color="transparent")
+        prog.pack(fill="x", padx=12, pady=(12, 0))
 
-        top_row = ctk.CTkFrame(prog_card, fg_color="transparent")
-        top_row.pack(fill="x", padx=16, pady=(14, 4))
+        top_row = ctk.CTkFrame(prog, fg_color="transparent")
+        top_row.pack(fill="x", pady=(0, 4))
 
         self._pct_label = ctk.CTkLabel(
             top_row,
             text="0%",
-            font=_safe_font("SF Pro Display", 28, "bold"),
+            font=_font("SF Pro Display", 22, "bold"),
             text_color=TEXT_PRIMARY,
         )
         self._pct_label.pack(side="left")
@@ -228,217 +231,238 @@ class TrainingDashboard(ctk.CTk):
         self._status_msg = ctk.CTkLabel(
             top_row,
             text="Waiting to start",
-            font=_safe_font("SF Pro Text", 11),
+            font=_font("SF Pro Text", 10),
             text_color=TEXT_MUTED,
         )
-        self._status_msg.pack(side="right", pady=(8, 0))
+        self._status_msg.pack(side="right", pady=0)
 
         self._progress_bar = ctk.CTkProgressBar(
-            prog_card,
-            height=5,
+            prog,
+            height=3,
             progress_color=ACCENT,
-            fg_color="#252525",
-            corner_radius=3,
+            fg_color=BG_INPUT,
+            corner_radius=2,
         )
-        self._progress_bar.pack(fill="x", padx=16, pady=(0, 16))
+        self._progress_bar.pack(fill="x")
         self._progress_bar.set(0)
 
-        # Section label
-        lbl_row = ctk.CTkFrame(wrap, fg_color="transparent")
-        lbl_row.pack(fill="x", padx=18, pady=(16, 6))
+        # Separator
+        ctk.CTkFrame(wrap, height=1, fg_color=BORDER).pack(fill="x", padx=0, pady=(12, 0))
+
+        # Steps label
         ctk.CTkLabel(
-            lbl_row,
+            wrap,
             text="TRAINING STEPS",
-            font=_safe_font("SF Pro Text", 10, "bold"),
-            text_color=TEXT_MUTED,
-        ).pack(anchor="w")
+            font=_font("SF Pro Text", 9, "bold"),
+            text_color=TEXT_FAINT,
+        ).pack(anchor="w", padx=12, pady=(8, 4))
 
         # Step rows
         for i, step in enumerate(self.STEPS):
-            row = ctk.CTkFrame(wrap, fg_color=BG_ROW, corner_radius=8)
-            row.pack(fill="x", padx=18, pady=2)
+            row = ctk.CTkFrame(wrap, fg_color=BG_ROW, corner_radius=6, height=36)
+            row.pack(fill="x", padx=8, pady=2)
+            row.pack_propagate(False)
 
-            # Number badge
             num = ctk.CTkLabel(
                 row,
                 text=str(i + 1),
-                width=26,
-                height=26,
-                font=_safe_font("SF Pro Text", 11),
+                width=20,
+                height=20,
+                font=_font("SF Pro Text", 10),
                 text_color=TEXT_MUTED,
-                fg_color="#2A2A2A",
-                corner_radius=13,
+                fg_color=BG_INPUT,
+                corner_radius=10,
             )
-            num.pack(side="left", padx=(10, 8), pady=10)
+            num.pack(side="left", padx=(8, 6), pady=8)
 
             lbl = ctk.CTkLabel(
                 row,
                 text=step,
-                font=_safe_font("SF Pro Text", 13),
+                font=_font("SF Pro Text", 12),
                 text_color=TEXT_SECONDARY,
+                anchor="w",
             )
-            lbl.pack(side="left", pady=10)
+            lbl.pack(side="left", pady=8, fill="x", expand=True)
 
-            # State icon (right side)
             icon = ctk.CTkLabel(
                 row,
                 text="",
-                font=_safe_font("SF Pro Text", 13),
+                font=_font("SF Pro Text", 11),
                 text_color=TEXT_MUTED,
-                width=30,
+                width=24,
             )
-            icon.pack(side="right", padx=10)
+            icon.pack(side="right", padx=6)
 
-            self._step_widgets[step] = {"row": row, "num": num, "label": lbl, "icon": icon}
+            self._step_widgets[step] = {
+                "row": row, "num": num, "label": lbl, "icon": icon,
+            }
 
     # ── Center panel ──────────────────────────────────────────────────────────
     def _build_center(self, parent):
-        scroll = ctk.CTkScrollableFrame(parent, fg_color="transparent", scrollbar_button_color="#2A2A2A")
+        scroll = ctk.CTkScrollableFrame(
+            parent, fg_color="transparent",
+            scrollbar_button_color=BORDER_MD,
+        )
         scroll.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Metric cards
         metrics_row = ctk.CTkFrame(scroll, fg_color="transparent")
-        metrics_row.pack(fill="x", padx=20, pady=(18, 0))
+        metrics_row.pack(fill="x", padx=10, pady=(10, 0))
         metrics_row.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self._acc_val = self._metric_card(metrics_row, "Accuracy",    "--", 0)
-        self._f1w_val = self._metric_card(metrics_row, "F1 weighted", "--", 1)
-        self._f1m_val = self._metric_card(metrics_row, "F1 macro",    "--", 2)
+        self._acc_val = self._metric_card(metrics_row, "Accuracy",    0)
+        self._f1w_val = self._metric_card(metrics_row, "F1 weighted", 1)
+        self._f1m_val = self._metric_card(metrics_row, "F1 macro",    2)
 
         # Dataset summary
-        ds_card = ctk.CTkFrame(scroll, fg_color=BG_CARD, corner_radius=12)
-        ds_card.pack(fill="x", padx=20, pady=(14, 0))
-        ctk.CTkLabel(
-            ds_card,
-            text="Dataset summary",
-            font=_safe_font("SF Pro Display", 14, "bold"),
-            text_color=TEXT_PRIMARY,
-        ).pack(anchor="w", padx=16, pady=(14, 6))
-
-        ctk.CTkFrame(ds_card, height=1, fg_color="#252525").pack(fill="x", padx=16)
+        ds_card = self._section_card(scroll, "Dataset summary", pady_top=10)
 
         self._dataset_label = ctk.CTkLabel(
             ds_card,
             text="No dataset loaded yet.",
-            font=_safe_font("JetBrains Mono", 12),
+            font=_font("JetBrains Mono", 10),
             text_color=TEXT_SECONDARY,
             justify="left",
+            anchor="w",
         )
-        self._dataset_label.pack(anchor="w", padx=16, pady=(10, 14))
+        self._dataset_label.pack(anchor="w", padx=12, pady=(8, 10), fill="x")
 
         # Confusion matrix
-        cm_card = ctk.CTkFrame(scroll, fg_color=BG_CARD, corner_radius=12)
-        cm_card.pack(fill="both", expand=True, padx=20, pady=(14, 18))
-        ctk.CTkLabel(
-            cm_card,
-            text="Confusion matrix",
-            font=_safe_font("SF Pro Display", 14, "bold"),
-            text_color=TEXT_PRIMARY,
-        ).pack(anchor="w", padx=16, pady=(14, 6))
-
-        ctk.CTkFrame(cm_card, height=1, fg_color="#252525").pack(fill="x", padx=16)
+        cm_card = self._section_card(scroll, "Confusion matrix", pady_top=8, expand=True)
 
         self._matrix_box = ctk.CTkTextbox(
             cm_card,
-            fg_color="#111111",
+            fg_color=BG_BASE,
             text_color=TEXT_SECONDARY,
-            font=_safe_font("JetBrains Mono", 12),
-            corner_radius=8,
+            font=_font("JetBrains Mono", 10),
+            corner_radius=4,
             border_width=0,
-            height=200,
+            height=160,
         )
-        self._matrix_box.pack(fill="both", expand=True, padx=16, pady=(10, 16))
+        self._matrix_box.pack(fill="both", expand=True, padx=10, pady=(6, 10))
         self._matrix_box.insert("end", "Awaiting evaluation…")
         self._matrix_box.configure(state="disabled")
 
-    def _metric_card(self, parent, title, value, col):
-        card = ctk.CTkFrame(parent, fg_color=BG_CARD, corner_radius=12)
-        card.grid(row=0, column=col, padx=(0 if col == 0 else 6, 0), sticky="nsew")
+    def _section_card(self, parent, title, pady_top: int = 8, expand: bool = False):
+        """Create a labelled section card and return its body frame."""
+        outer = ctk.CTkFrame(parent, fg_color=BG_CARD, corner_radius=8,
+                             border_width=1, border_color=BORDER)
+        if expand:
+            outer.pack(fill="both", expand=True, padx=10, pady=pady_top)
+        else:
+            outer.pack(fill="x", padx=10, pady=pady_top)
+
+        # Header
+        hdr = ctk.CTkFrame(outer, fg_color="transparent", height=32)
+        hdr.pack(fill="x")
+        hdr.pack_propagate(False)
+        ctk.CTkLabel(
+            hdr,
+            text=title,
+            font=_font("SF Pro Display", 12, "bold"),
+            text_color=TEXT_PRIMARY,
+        ).pack(side="left", padx=12, pady=6)
+
+        ctk.CTkFrame(outer, height=1, fg_color=BORDER).pack(fill="x")
+        return outer
+
+    def _metric_card(self, parent, title, col):
+        card = ctk.CTkFrame(
+            parent, fg_color=BG_CARD, corner_radius=8,
+            border_width=1, border_color=BORDER,
+        )
+        card.grid(row=0, column=col,
+                  padx=(0 if col == 0 else 6, 0),
+                  sticky="nsew", pady=0)
 
         ctk.CTkLabel(
             card,
             text=title,
-            font=_safe_font("SF Pro Text", 12),
+            font=_font("SF Pro Text", 11),
             text_color=TEXT_SECONDARY,
-        ).pack(anchor="w", padx=16, pady=(14, 2))
+        ).pack(anchor="w", padx=10, pady=(8, 2))
 
         val_lbl = ctk.CTkLabel(
             card,
-            text=value,
-            font=_safe_font("SF Pro Display", 24, "bold"),
+            text="—",
+            font=_font("SF Pro Display", 20, "bold"),
             text_color=TEXT_MUTED,
         )
-        val_lbl.pack(anchor="w", padx=16, pady=(0, 14))
+        val_lbl.pack(anchor="w", padx=10, pady=(0, 8))
         return val_lbl
 
     # ── Right panel ───────────────────────────────────────────────────────────
     def _build_right(self, parent):
         wrap = ctk.CTkFrame(parent, fg_color="transparent")
-        wrap.pack(fill="both", expand=True, padx=18, pady=18)
+        wrap.pack(fill="both", expand=True, padx=12, pady=12)
 
-        # Run info
+        # Run info label
         ctk.CTkLabel(
             wrap,
             text="RUN INFO",
-            font=_safe_font("SF Pro Text", 10, "bold"),
-            text_color=TEXT_MUTED,
-        ).pack(anchor="w", pady=(0, 8))
+            font=_font("SF Pro Text", 9, "bold"),
+            text_color=TEXT_FAINT,
+        ).pack(anchor="w", pady=(0, 6))
 
-        info_card = ctk.CTkFrame(wrap, fg_color=BG_CARD, corner_radius=12)
+        info_card = ctk.CTkFrame(
+            wrap, fg_color=BG_CARD, corner_radius=8,
+            border_width=1, border_color=BORDER,
+        )
         info_card.pack(fill="x")
 
-        def info_row(label, value_attr, default="--", mono=True):
-            row = ctk.CTkFrame(info_card, fg_color="transparent")
-            row.pack(fill="x", padx=14, pady=0)
+        def info_row(label, attr, default="—", mono=True):
+            row = ctk.CTkFrame(info_card, fg_color="transparent", height=30)
+            row.pack(fill="x")
+            row.pack_propagate(False)
+
             ctk.CTkLabel(
                 row,
                 text=label,
-                font=_safe_font("SF Pro Text", 12),
+                font=_font("SF Pro Text", 11),
                 text_color=TEXT_SECONDARY,
-                width=100,
                 anchor="w",
-            ).pack(side="left", pady=8)
+                width=90,
+            ).pack(side="left", padx=10)
+
             val = ctk.CTkLabel(
                 row,
                 text=default,
-                font=_safe_font("JetBrains Mono" if mono else "SF Pro Text", 11),
+                font=_font("JetBrains Mono" if mono else "SF Pro Text", 10),
                 text_color=TEXT_PRIMARY,
                 anchor="e",
-                wraplength=150,
+                wraplength=108,
                 justify="right",
             )
-            val.pack(side="right", pady=8)
-            setattr(self, value_attr, val)
-            ctk.CTkFrame(info_card, height=1, fg_color="#222222").pack(fill="x")
+            val.pack(side="right", padx=10)
+            setattr(self, attr, val)
 
-        info_row("Training time",  "_r_time")
-        info_row("Model path",     "_r_model")
-        info_row("Metrics path",   "_r_metrics")
-        info_row("Kernel",         "_r_kernel",  "rbf",   mono=False)
-        info_row("C",              "_r_C",       "1.0")
-        info_row("Gamma",          "_r_gamma",   "scale", mono=False)
-        info_row("Test size",      "_r_test",    "20%",   mono=False)
+            ctk.CTkFrame(info_card, height=1, fg_color=BORDER).pack(fill="x")
 
-        # Remove last separator
-        for w in info_card.winfo_children():
-            if isinstance(w, ctk.CTkFrame) and w.cget("height") == 1:
-                pass  # kept for spacing
+        info_row("Training time", "_r_time")
+        info_row("Model path",    "_r_model")
+        info_row("Metrics path",  "_r_metrics")
+        info_row("Kernel",        "_r_kernel",  "rbf",   mono=False)
+        info_row("C",             "_r_C",       "1.0")
+        info_row("Gamma",         "_r_gamma",   "scale", mono=False)
+        info_row("Test size",     "_r_test",    "20%",   mono=False)
+        info_row("Random state",  "_r_rstate",  "42")
 
         # Classification report
         ctk.CTkLabel(
             wrap,
             text="CLASSIFICATION REPORT",
-            font=_safe_font("SF Pro Text", 10, "bold"),
-            text_color=TEXT_MUTED,
-        ).pack(anchor="w", pady=(16, 8))
+            font=_font("SF Pro Text", 9, "bold"),
+            text_color=TEXT_FAINT,
+        ).pack(anchor="w", pady=(12, 6))
 
         self._report_box = ctk.CTkTextbox(
             wrap,
             fg_color=BG_CARD,
             text_color=TEXT_SECONDARY,
-            font=_safe_font("JetBrains Mono", 11),
-            corner_radius=12,
-            border_width=0,
+            font=_font("JetBrains Mono", 10),
+            corner_radius=8,
+            border_width=1,
+            border_color=BORDER,
         )
         self._report_box.pack(fill="both", expand=True)
         self._report_box.insert("end", "No report yet.")
@@ -448,62 +472,61 @@ class TrainingDashboard(ctk.CTk):
     # State helpers
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _set_step(self, step, state):
+    def _set_step(self, step, state: str):
         """state: 'pending' | 'active' | 'done' | 'error'"""
         w = self._step_widgets[step]
 
         if state == "active":
-            w["row"].configure(fg_color=BG_ACTIVE)
-            w["num"].configure(text_color=ACCENT, fg_color="#0D2A5A")
-            w["label"].configure(text_color="#DBEAFE")
+            w["row"].configure(fg_color=ACCENT_DIM)
+            w["num"].configure(text_color=ACCENT_TEXT, fg_color="#0D2A5A")
+            w["label"].configure(text_color=ACCENT_TEXT)
             w["icon"].configure(text="●", text_color=ACCENT)
 
         elif state == "done":
-            w["row"].configure(fg_color=BG_DONE)
-            w["num"].configure(text_color=SUCCESS, fg_color="#0D2A18")
-            w["label"].configure(text_color="#DCFCE7")
+            w["row"].configure(fg_color=SUCCESS_DIM)
+            w["num"].configure(text_color=SUCCESS_TEXT, fg_color="#0A2010")
+            w["label"].configure(text_color=SUCCESS_TEXT)
             w["icon"].configure(text="✓", text_color=SUCCESS)
 
         elif state == "error":
-            w["row"].configure(fg_color=BG_ERROR)
-            w["num"].configure(text_color=DANGER, fg_color="#3A1010")
-            w["label"].configure(text_color="#FECACA")
+            w["row"].configure(fg_color=DANGER_DIM)
+            w["num"].configure(text_color=DANGER_TEXT, fg_color="#2A0808")
+            w["label"].configure(text_color=DANGER_TEXT)
             w["icon"].configure(text="✕", text_color=DANGER)
 
         else:  # pending
             w["row"].configure(fg_color=BG_ROW)
-            w["num"].configure(text_color=TEXT_MUTED, fg_color="#2A2A2A")
+            w["num"].configure(text_color=TEXT_MUTED, fg_color=BG_INPUT)
             w["label"].configure(text_color=TEXT_SECONDARY)
             w["icon"].configure(text="", text_color=TEXT_MUTED)
 
         self.update_idletasks()
 
-    def _set_progress(self, pct, msg):
+    def _set_progress(self, pct: int, msg: str):
         self._progress_bar.set(pct / 100)
         self._pct_label.configure(text=f"{pct}%")
         self._status_msg.configure(text=msg)
         self.update_idletasks()
 
-    def _set_badge(self, state):
-        """state: 'ready' | 'running' | 'done' | 'error'"""
+    def _set_badge(self, state: str):
         configs = {
-            "ready":   ("● Ready",    TEXT_MUTED,    "#252525"),
-            "running": ("● Training…", ACCENT,        "#0F2340"),
-            "done":    ("✓ Done",     SUCCESS,        "#0D2318"),
-            "error":   ("✕ Error",    DANGER,         "#2A0D0D"),
+            "ready":   ("● Ready",     TEXT_MUTED, BG_INPUT),
+            "running": ("● Training…", ACCENT,     ACCENT_DIM),
+            "done":    ("✓ Done",      SUCCESS,    SUCCESS_DIM),
+            "error":   ("✕ Error",     DANGER,     DANGER_DIM),
         }
         text, fg, bg = configs[state]
         self._status_badge.configure(text=text, text_color=fg, fg_color=bg)
         self.update_idletasks()
 
-    def _write_textbox(self, tb, text):
+    def _write_textbox(self, tb: ctk.CTkTextbox, text: str):
         tb.configure(state="normal")
         tb.delete("1.0", "end")
         tb.insert("end", text)
         tb.configure(state="disabled")
 
-    def _set_metric(self, label_widget, value):
-        label_widget.configure(text=value, text_color=TEXT_PRIMARY)
+    def _set_metric(self, widget: ctk.CTkLabel, value: str):
+        widget.configure(text=value, text_color=TEXT_PRIMARY)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Clear
@@ -517,12 +540,12 @@ class TrainingDashboard(ctk.CTk):
             self._set_step(step, "pending")
 
         for w in (self._acc_val, self._f1w_val, self._f1m_val):
-            w.configure(text="--", text_color=TEXT_MUTED)
+            w.configure(text="—", text_color=TEXT_MUTED)
 
         self._dataset_label.configure(text="No dataset loaded yet.")
-        self._r_time.configure(text="--")
-        self._r_model.configure(text="--")
-        self._r_metrics.configure(text="--")
+        self._r_time.configure(text="—")
+        self._r_model.configure(text="—")
+        self._r_metrics.configure(text="—")
 
         self._write_textbox(self._matrix_box, "Awaiting evaluation…")
         self._write_textbox(self._report_box, "No report yet.")
@@ -592,7 +615,7 @@ class TrainingDashboard(ctk.CTk):
 
             model = Pipeline([
                 ("scaler", StandardScaler()),
-                ("svc", SVC(kernel="rbf", C=1.0, gamma="scale")),
+                ("svc",    SVC(kernel="rbf", C=1.0, gamma="scale")),
             ])
 
             time.sleep(0.4)
@@ -600,10 +623,8 @@ class TrainingDashboard(ctk.CTk):
 
             # ── 5. Train ─────────────────────────────────────────────────────
             self._set_step("Train SVC model", "active")
-
             start_time = time.time()
 
-            # Animate the bar while fitting
             for v in range(35, 68):
                 self._set_progress(v, "Training SVC model…")
                 time.sleep(0.03)
@@ -612,7 +633,6 @@ class TrainingDashboard(ctk.CTk):
             training_time = time.time() - start_time
 
             self._r_time.configure(text=f"{training_time:.4f} s")
-
             self._set_progress(68, "Training complete")
             self._set_step("Train SVC model", "done")
 
@@ -634,18 +654,18 @@ class TrainingDashboard(ctk.CTk):
             f1_macro    = f1_score(y_test, y_pred, average="macro")
             cm          = confusion_matrix(y_test, y_pred)
             report_dict = classification_report(y_test, y_pred, output_dict=True)
-            report_text = classification_report(y_test, y_pred)
+            report_text: str = str(classification_report(y_test, y_pred))
             labels      = sorted(y.unique())
 
             self._set_metric(self._acc_val, f"{accuracy:.2%}")
             self._set_metric(self._f1w_val, f"{f1_weighted:.2%}")
             self._set_metric(self._f1m_val, f"{f1_macro:.2%}")
 
-            # Matrix display
-            matrix_str = "Labels:\n  " + ", ".join(str(l) for l in labels)
-            matrix_str += "\n\nMatrix:\n" + str(cm) + "\n\nPer-class:\n"
+            matrix_str = "Labels:  " + ", ".join(str(l) for l in labels)
+            matrix_str += "\n\nMatrix:\n" + str(cm) + "\n\nPer class:\n"
             for i, row in enumerate(cm):
                 matrix_str += f"  {labels[i]}: {row}\n"
+
             self._write_textbox(self._matrix_box, matrix_str)
             self._write_textbox(self._report_box, report_text)
 
@@ -661,7 +681,7 @@ class TrainingDashboard(ctk.CTk):
             MODEL_DIR = os.path.join(ROOT_DIR, "models")
             os.makedirs(MODEL_DIR, exist_ok=True)
 
-            MODEL_PATH       = os.path.join(MODEL_DIR, "svc_model.pkl")
+            MODEL_PATH        = os.path.join(MODEL_DIR, "svc_model.pkl")
             METRICS_JSON_PATH = os.path.join(MODEL_DIR, "svc_model_metrics.json")
 
             joblib.dump(model, MODEL_PATH)
@@ -677,20 +697,20 @@ class TrainingDashboard(ctk.CTk):
             metrics_payload = {
                 "model_name": "SVC",
                 "model_config": {
-                    "scaler": "StandardScaler",
+                    "scaler":     "StandardScaler",
                     "classifier": "SVC",
-                    "kernel": "rbf",
-                    "C": 1.0,
-                    "gamma": "scale",
+                    "kernel":     "rbf",
+                    "C":          1.0,
+                    "gamma":      "scale",
                 },
                 "dataset_info": {
                     "feature_shape": list(X.shape),
-                    "target_shape": int(y.shape[0]),
-                    "train_shape": list(X_train.shape),
-                    "test_shape": list(X_test.shape),
-                    "test_size": 0.2,
-                    "random_state": 42,
-                    "stratify": True,
+                    "target_shape":  int(y.shape[0]),
+                    "train_shape":   list(X_train.shape),
+                    "test_shape":    list(X_test.shape),
+                    "test_size":     0.2,
+                    "random_state":  42,
+                    "stratify":      True,
                 },
                 "class_labels": labels,
                 "class_distribution": {
@@ -704,7 +724,7 @@ class TrainingDashboard(ctk.CTk):
                 "confusion_matrix":      cm.tolist(),
                 "classification_report": report_dict,
                 "training_time_seconds": float(training_time),
-                "feature_names":         list(X.columns) if hasattr(X, "columns") else [],
+                "feature_names": list(X.columns) if hasattr(X, "columns") else [],
             }
 
             with open(METRICS_JSON_PATH, "w") as fh:
@@ -716,23 +736,23 @@ class TrainingDashboard(ctk.CTk):
             self._set_step("Save metrics", "done")
 
             # ── Done ─────────────────────────────────────────────────────────
-            self._set_progress(100, "Training completed successfully")
+            self._set_progress(100, "Completed successfully")
             self._set_badge("done")
 
         except Exception as exc:
             self._set_badge("error")
             self._set_progress(
                 int(self._progress_bar.get() * 100),
-                "Error — see report panel"
+                "Error — see report panel",
             )
-            # Mark the currently-active step as errored
             for step in self.STEPS:
-                if self._step_widgets[step]["icon"].cget("text") == "●":
+                w = self._step_widgets[step]
+                if w["icon"].cget("text") == "●":
                     self._set_step(step, "error")
 
             self._write_textbox(
                 self._report_box,
-                f"ERROR\n{'─' * 40}\n{type(exc).__name__}: {exc}"
+                f"ERROR\n{'─' * 36}\n{type(exc).__name__}: {exc}",
             )
 
         finally:

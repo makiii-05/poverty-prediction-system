@@ -1,31 +1,65 @@
 import os
+import sys
 import json
-import joblib
 import time
+import joblib
+
+from typing import Any, Dict, cast
 from tqdm import tqdm
 
-from preprocess import load_and_prepare_data
+# =====================================================
+# FIX IMPORT PATH
+# =====================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+PROJECT_ROOT = os.path.normpath(
+    os.path.join(BASE_DIR, "..")
+)
+
+ML_SERVICE_DIR = os.path.join(PROJECT_ROOT, "ml-service")
+
+if ML_SERVICE_DIR not in sys.path:
+    sys.path.append(ML_SERVICE_DIR)
+
+from classification.preprocess import load_and_prepare_data
+
+# =====================================================
+# SKLEARN IMPORTS
+# =====================================================
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score
+)
 
+# =====================================================
+# LOAD DATASET
+# =====================================================
+print("======================================")
+print("LOADING PREPROCESSED DATASET")
+print("======================================")
 
-# Load preprocessed data
 X, y = load_and_prepare_data()
 
-print("=== DATASET INFO ===")
-print("Feature shape:", X.shape)
-print("Target shape:", y.shape)
-print()
+print("\n=== DATASET INFO ===")
+print("Feature Shape :", X.shape)
+print("Target Shape  :", y.shape)
 
-print("=== CLASS DISTRIBUTION (FULL DATASET) ===")
+print("\n=== CLASS DISTRIBUTION (FULL DATASET) ===")
 print(y.value_counts())
-print()
 
+# =====================================================
+# TRAIN / TEST SPLIT
+# =====================================================
+print("\n======================================")
+print("SPLITTING TRAIN / TEST DATA")
+print("======================================")
 
-# Split into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -34,23 +68,25 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y
 )
 
-print("=== TRAIN / TEST SPLIT INFO ===")
-print("X_train shape:", X_train.shape)
-print("X_test shape:", X_test.shape)
-print("y_train shape:", y_train.shape)
-print("y_test shape:", y_test.shape)
-print()
+print("\n=== TRAIN / TEST INFO ===")
+print("X_train Shape :", X_train.shape)
+print("X_test Shape  :", X_test.shape)
+print("y_train Shape :", y_train.shape)
+print("y_test Shape  :", y_test.shape)
 
-print("=== CLASS DISTRIBUTION (TRAIN SET) ===")
+print("\n=== TRAIN CLASS DISTRIBUTION ===")
 print(y_train.value_counts())
-print()
 
-print("=== CLASS DISTRIBUTION (TEST SET) ===")
+print("\n=== TEST CLASS DISTRIBUTION ===")
 print(y_test.value_counts())
-print()
 
+# =====================================================
+# MODEL PIPELINE
+# =====================================================
+print("\n======================================")
+print("CREATING SVC PIPELINE")
+print("======================================")
 
-# Create model pipeline (WITH VERBOSE)
 model = Pipeline([
     ("scaler", StandardScaler()),
     ("svc", SVC(
@@ -58,113 +94,178 @@ model = Pipeline([
         C=1.0,
         gamma="scale",
         random_state=42,
-        verbose=True   # 👈 shows real training logs
+        verbose=True
     ))
 ])
 
-print("=== MODEL CONFIGURATION ===")
 print(model)
-print()
 
+# =====================================================
+# TRAINING PHASE
+# =====================================================
+print("\n======================================")
+print("TRAINING PHASE")
+print("======================================")
 
-# ===============================
-# 🔥 TRAINING PHASE (VISIBLE)
-# ===============================
-print("\n=== TRAINING PHASE ===")
-
-# Simulated progress bar (for presentation/demo)
 for _ in tqdm(range(100), desc="Training SVC Model"):
     time.sleep(0.01)
 
-# Actual training timer
 start_time = time.time()
 
 model.fit(X_train, y_train)
 
 end_time = time.time()
 
-print(f"\n✅ Training completed in {end_time - start_time:.4f} seconds\n")
+training_time = end_time - start_time
 
+print(f"\n✅ Training Completed in {training_time:.4f} seconds")
 
-# Predict
+# =====================================================
+# PREDICTION
+# =====================================================
+print("\n======================================")
+print("PREDICTING TEST DATA")
+print("======================================")
+
 y_pred = model.predict(X_test)
 
+# =====================================================
+# METRICS
+# =====================================================
+print("\n======================================")
+print("CALCULATING METRICS")
+print("======================================")
 
-# Metrics
 accuracy = accuracy_score(y_test, y_pred)
-f1_weighted = f1_score(y_test, y_pred, average="weighted")
-f1_macro = f1_score(y_test, y_pred, average="macro")
+
+f1_weighted = f1_score(
+    y_test,
+    y_pred,
+    average="weighted"
+)
+
+f1_macro = f1_score(
+    y_test,
+    y_pred,
+    average="macro"
+)
+
 cm = confusion_matrix(y_test, y_pred)
-report = classification_report(y_test, y_pred, output_dict=True)
-report_text = classification_report(y_test, y_pred)
+
+report = cast(
+    Dict[str, Any],
+    classification_report(
+        y_test,
+        y_pred,
+        output_dict=True
+    )
+)
+
+report_text = classification_report(
+    y_test,
+    y_pred
+)
 
 labels = sorted(y.unique())
 
+# =====================================================
+# PRINT RESULTS
+# =====================================================
+print("\n======================================")
+print("MODEL RESULTS")
+print("======================================")
 
-# Print Results
-print("=== SVC MODEL ===")
-print("Accuracy:", accuracy)
-print("F1 Score (Weighted):", f1_weighted)
-print("F1 Score (Macro):", f1_macro)
-print()
+print("Accuracy           :", accuracy)
+print("F1 Score Weighted  :", f1_weighted)
+print("F1 Score Macro     :", f1_macro)
 
-print("=== CLASS LABELS ===")
+print("\n=== CLASS LABELS ===")
 print(labels)
-print()
 
-print("=== CONFUSION MATRIX ===")
+print("\n=== CONFUSION MATRIX ===")
 print(cm)
-print()
 
-print("=== CONFUSION MATRIX WITH LABELS ===")
-print("Labels:", labels)
+print("\n=== CONFUSION MATRIX WITH LABELS ===")
+
 for i, row in enumerate(cm):
     print(f"{labels[i]}: {row}")
-print()
 
-print("=== CLASSIFICATION REPORT ===")
+print("\n=== CLASSIFICATION REPORT ===")
 print(report_text)
-print()
 
-print("=== PER-CLASS METRICS ===")
+# =====================================================
+# PER-CLASS METRICS
+# =====================================================
+print("\n======================================")
+print("PER-CLASS METRICS")
+print("======================================")
+
 for label in labels:
-    if label in report:
-        print(f"Class: {label}")
-        print("  Precision:", report[label]["precision"])
-        print("  Recall   :", report[label]["recall"])
-        print("  F1-Score :", report[label]["f1-score"])
-        print("  Support  :", report[label]["support"])
-        print()
+    class_metrics = report.get(str(label))
 
-print("=== OVERALL METRICS ===")
-if "macro avg" in report:
-    print("Macro Avg Precision:", report["macro avg"]["precision"])
-    print("Macro Avg Recall   :", report["macro avg"]["recall"])
-    print("Macro Avg F1-Score :", report["macro avg"]["f1-score"])
-    print("Macro Avg Support  :", report["macro avg"]["support"])
-    print()
+    if isinstance(class_metrics, dict):
+        print(f"\nClass: {label}")
+        print("  Precision:", class_metrics.get("precision", 0))
+        print("  Recall   :", class_metrics.get("recall", 0))
+        print("  F1-Score :", class_metrics.get("f1-score", 0))
+        print("  Support  :", class_metrics.get("support", 0))
 
-if "weighted avg" in report:
-    print("Weighted Avg Precision:", report["weighted avg"]["precision"])
-    print("Weighted Avg Recall   :", report["weighted avg"]["recall"])
-    print("Weighted Avg F1-Score :", report["weighted avg"]["f1-score"])
-    print("Weighted Avg Support  :", report["weighted avg"]["support"])
-    print()
+# =====================================================
+# OVERALL METRICS
+# =====================================================
+print("\n======================================")
+print("OVERALL METRICS")
+print("======================================")
 
+macro_avg = report.get("macro avg")
 
-# Save model and metrics
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(BASE_DIR)
-MODEL_DIR = os.path.join(ROOT_DIR, "models")
-MODEL_PATH = os.path.join(MODEL_DIR, "svc_model.pkl")
-METRICS_PATH = os.path.join(MODEL_DIR, "svc_model_metrics.pkl")
+if isinstance(macro_avg, dict):
+    print("\n=== MACRO AVG ===")
+    print("Precision:", macro_avg.get("precision", 0))
+    print("Recall   :", macro_avg.get("recall", 0))
+    print("F1-Score :", macro_avg.get("f1-score", 0))
+    print("Support  :", macro_avg.get("support", 0))
+
+weighted_avg = report.get("weighted avg")
+
+if isinstance(weighted_avg, dict):
+    print("\n=== WEIGHTED AVG ===")
+    print("Precision:", weighted_avg.get("precision", 0))
+    print("Recall   :", weighted_avg.get("recall", 0))
+    print("F1-Score :", weighted_avg.get("f1-score", 0))
+    print("Support  :", weighted_avg.get("support", 0))
+
+# =====================================================
+# SAVE MODEL
+# =====================================================
+print("\n======================================")
+print("SAVING MODEL")
+print("======================================")
+
+MODEL_DIR = os.path.join(PROJECT_ROOT, "models")
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
+MODEL_PATH = os.path.join(
+    MODEL_DIR,
+    "svc_model.pkl"
+)
+
 joblib.dump(model, MODEL_PATH)
+
+print("Model saved at:")
+print(MODEL_PATH)
+
+# =====================================================
+# SAVE METRICS
+# =====================================================
+print("\n======================================")
+print("SAVING METRICS JSON")
+print("======================================")
 
 metrics = {
     "model_name": "SVC",
+
     "model_config": {
         "scaler": "StandardScaler",
         "classifier": "SVC",
@@ -173,6 +274,7 @@ metrics = {
         "gamma": "scale",
         "random_state": 42
     },
+
     "dataset_info": {
         "feature_shape": list(X.shape),
         "target_shape": int(y.shape[0]),
@@ -182,24 +284,39 @@ metrics = {
         "random_state": 42,
         "stratify": True
     },
+
     "class_labels": labels,
+
     "class_distribution": {
         "full_dataset": y.value_counts().to_dict(),
         "train_set": y_train.value_counts().to_dict(),
         "test_set": y_test.value_counts().to_dict()
     },
+
     "accuracy": float(accuracy),
     "f1_weighted": float(f1_weighted),
     "f1_macro": float(f1_macro),
     "confusion_matrix": cm.tolist(),
     "classification_report": report,
-    "feature_names": list(X.columns) if hasattr(X, "columns") else []
+    "training_time_seconds": float(training_time),
+    "feature_names": (
+        list(X.columns)
+        if hasattr(X, "columns")
+        else []
+    )
 }
 
-METRICS_JSON_PATH = os.path.join(MODEL_DIR, "svc_model_metrics.json")
+METRICS_JSON_PATH = os.path.join(
+    MODEL_DIR,
+    "svc_model_metrics.json"
+)
 
 with open(METRICS_JSON_PATH, "w") as f:
     json.dump(metrics, f, indent=2)
 
-print(f"\nModel saved as {MODEL_PATH}")
-print(f"Metrics saved as {METRICS_JSON_PATH}")
+print("Metrics saved at:")
+print(METRICS_JSON_PATH)
+
+print("\n======================================")
+print("PROCESS COMPLETED SUCCESSFULLY")
+print("======================================")
