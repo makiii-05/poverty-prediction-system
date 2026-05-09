@@ -1,6 +1,9 @@
 import os
 import json
 import joblib
+import time
+from tqdm import tqdm
+
 from preprocess import load_and_prepare_data
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -47,10 +50,16 @@ print(y_test.value_counts())
 print()
 
 
-# Create model pipeline
+# Create model pipeline (WITH VERBOSE)
 model = Pipeline([
     ("scaler", StandardScaler()),
-    ("svc", SVC(kernel="rbf", C=1.0, gamma="scale", random_state=42))
+    ("svc", SVC(
+        kernel="rbf",
+        C=1.0,
+        gamma="scale",
+        random_state=42,
+        verbose=True   # 👈 shows real training logs
+    ))
 ])
 
 print("=== MODEL CONFIGURATION ===")
@@ -58,11 +67,28 @@ print(model)
 print()
 
 
-# Train model
+# ===============================
+# 🔥 TRAINING PHASE (VISIBLE)
+# ===============================
+print("\n=== TRAINING PHASE ===")
+
+# Simulated progress bar (for presentation/demo)
+for _ in tqdm(range(100), desc="Training SVC Model"):
+    time.sleep(0.01)
+
+# Actual training timer
+start_time = time.time()
+
 model.fit(X_train, y_train)
+
+end_time = time.time()
+
+print(f"\n✅ Training completed in {end_time - start_time:.4f} seconds\n")
+
 
 # Predict
 y_pred = model.predict(X_test)
+
 
 # Metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -74,7 +100,8 @@ report_text = classification_report(y_test, y_pred)
 
 labels = sorted(y.unique())
 
-# Print
+
+# Print Results
 print("=== SVC MODEL ===")
 print("Accuracy:", accuracy)
 print("F1 Score (Weighted):", f1_weighted)

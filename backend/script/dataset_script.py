@@ -4,14 +4,21 @@ import mysql.connector
 import joblib
 import sys
 
+import os
+import sys
+
 # -----------------------------
 # FIX IMPORT PATH FOR preprocess.py
 # -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ML_SERVICE_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "..", "ml-service"))
+
+ML_SERVICE_DIR = os.path.normpath(
+    os.path.join(BASE_DIR, "..", "..", "ml-service")
+)
+
 sys.path.append(ML_SERVICE_DIR)
 
-from preprocess import load_and_prepare_data
+from classification.preprocess import load_and_prepare_data
 
 # -----------------------------
 # DATABASE CONNECTION
