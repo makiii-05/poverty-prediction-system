@@ -5,7 +5,6 @@ import time
 import joblib
 
 from typing import Any, Dict, cast
-from tqdm import tqdm
 
 # =====================================================
 # FIX IMPORT PATH
@@ -21,12 +20,17 @@ ML_SERVICE_DIR = os.path.join(PROJECT_ROOT, "ml-service")
 if ML_SERVICE_DIR not in sys.path:
     sys.path.append(ML_SERVICE_DIR)
 
-from classification.preprocess import load_and_prepare_data
+from preprocess import load_and_prepare_data
 
 # =====================================================
 # SKLEARN IMPORTS
 # =====================================================
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import (
+    train_test_split,
+    StratifiedKFold,
+    GridSearchCV,
+    cross_val_score
+)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -50,7 +54,7 @@ print("\n=== DATASET INFO ===")
 print("Feature Shape :", X.shape)
 print("Target Shape  :", y.shape)
 
-print("\n=== CLASS DISTRIBUTION (FULL DATASET) ===")
+print("\n=== CLASS DISTRIBUTION FULL DATASET ===")
 print(y.value_counts())
 
 # =====================================================
@@ -81,44 +85,108 @@ print("\n=== TEST CLASS DISTRIBUTION ===")
 print(y_test.value_counts())
 
 # =====================================================
-# MODEL PIPELINE
+# PIPELINE
 # =====================================================
 print("\n======================================")
 print("CREATING SVC PIPELINE")
 print("======================================")
 
-model = Pipeline([
+pipeline = Pipeline([
     ("scaler", StandardScaler()),
     ("svc", SVC(
-        kernel="rbf",
-        C=1.0,
-        gamma="scale",
-        random_state=42,
-        verbose=True
+        random_state=42
     ))
 ])
 
-print(model)
+print(pipeline)
+
+# =====================================================
+# CROSS VALIDATION SETUP
+# =====================================================
+print("\n======================================")
+print("SETTING UP STRATIFIED K-FOLD CV")
+print("======================================")
+
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+
+# =====================================================
+# GRIDSEARCHCV SETUP
+# =====================================================
+print("\n======================================")
+print("SETTING UP GRIDSEARCHCV")
+print("======================================")
+
+param_grid = {
+    "svc__kernel": ["rbf"],
+    "svc__C": [0.1, 1, 10, 100],
+    "svc__gamma": ["scale", "auto", 0.01, 0.1, 1]
+}
+
+grid_search = GridSearchCV(
+    estimator=pipeline,
+    param_grid=param_grid,
+    scoring="f1_weighted",
+    cv=cv,
+    n_jobs=-1,
+    verbose=2
+)
+
+print("\n=== PARAMETER GRID ===")
+print(param_grid)
 
 # =====================================================
 # TRAINING PHASE
 # =====================================================
 print("\n======================================")
-print("TRAINING PHASE")
+print("TRAINING PHASE WITH GRIDSEARCHCV")
 print("======================================")
-
-for _ in tqdm(range(100), desc="Training SVC Model"):
-    time.sleep(0.01)
 
 start_time = time.time()
 
-model.fit(X_train, y_train)
+grid_search.fit(X_train, y_train)
 
 end_time = time.time()
-
 training_time = end_time - start_time
 
 print(f"\n✅ Training Completed in {training_time:.4f} seconds")
+
+print("\n=== BEST PARAMETERS ===")
+print(grid_search.best_params_)
+
+print("\n=== BEST CROSS-VALIDATION SCORE ===")
+print(grid_search.best_score_)
+
+# Best trained model
+model = grid_search.best_estimator_
+
+# =====================================================
+# EXTRA CROSS VALIDATION ON BEST MODEL
+# =====================================================
+print("\n======================================")
+print("VALIDATING BEST MODEL USING CROSS_VAL_SCORE")
+print("======================================")
+
+cv_scores = cross_val_score(
+    model,
+    X_train,
+    y_train,
+    cv=cv,
+    scoring="f1_weighted",
+    n_jobs=-1
+)
+
+print("\n=== CROSS VALIDATION SCORES ===")
+print(cv_scores)
+
+print("\n=== MEAN CV SCORE ===")
+print(cv_scores.mean())
+
+print("\n=== STD CV SCORE ===")
+print(cv_scores.std())
 
 # =====================================================
 # PREDICTION
@@ -269,9 +337,10 @@ metrics = {
     "model_config": {
         "scaler": "StandardScaler",
         "classifier": "SVC",
-        "kernel": "rbf",
-        "C": 1.0,
-        "gamma": "scale",
+        "best_params": grid_search.best_params_,
+        "best_cv_score": float(grid_search.best_score_),
+        "cv_folds": 5,
+        "scoring": "f1_weighted",
         "random_state": 42
     },
 
@@ -293,12 +362,30 @@ metrics = {
         "test_set": y_test.value_counts().to_dict()
     },
 
-    "accuracy": float(accuracy),
-    "f1_weighted": float(f1_weighted),
-    "f1_macro": float(f1_macro),
-    "confusion_matrix": cm.tolist(),
-    "classification_report": report,
+    "grid_search": {
+        "param_grid": param_grid,
+        "best_params": grid_search.best_params_,
+        "best_score": float(grid_search.best_score_)
+    },
+
+    "cross_validation": {
+        "cv_scores": cv_scores.tolist(),
+        "mean_cv_score": float(cv_scores.mean()),
+        "std_cv_score": float(cv_scores.std()),
+        "cv_folds": 5,
+        "scoring": "f1_weighted"
+    },
+
+    "test_metrics": {
+        "accuracy": float(accuracy),
+        "f1_weighted": float(f1_weighted),
+        "f1_macro": float(f1_macro),
+        "confusion_matrix": cm.tolist(),
+        "classification_report": report
+    },
+
     "training_time_seconds": float(training_time),
+
     "feature_names": (
         list(X.columns)
         if hasattr(X, "columns")
