@@ -37,17 +37,17 @@
     "Moderate"
   ],
   "class_distribution": {
-    "full_dataset": {
+    "full": {
       "High": 353,
       "Moderate": 343,
       "Low": 341
     },
-    "train_set": {
+    "train": {
       "High": 282,
       "Moderate": 274,
       "Low": 273
     },
-    "test_set": {
+    "test": {
       "High": 71,
       "Moderate": 69,
       "Low": 68
@@ -89,8 +89,8 @@
       0.981910086506122,
       0.9695851090661656
     ],
-    "mean_cv_score": 0.9662429320152579,
-    "std_cv_score": 0.012357155841060435,
+    "mean": 0.9662429320152579,
+    "std": 0.012357155841060435,
     "cv_folds": 5,
     "scoring": "f1_weighted"
   },
@@ -149,7 +149,7 @@
       }
     }
   },
-  "training_time_seconds": 3.0446248054504395,
+  "training_time_seconds": 2.9811453819274902,
   "feature_names": [
     "year",
     "ave_income",

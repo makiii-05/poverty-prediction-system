@@ -9,63 +9,51 @@ import customtkinter as ctk
 from classification.preprocess import load_and_prepare_data
 from typing import Any, Dict, cast
 
-from sklearn.model_selection import (
-    train_test_split,
-    StratifiedKFold,
-    GridSearchCV,
-    cross_val_score,
-)
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-)
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-BG_BASE = "#0A0A0A"
-BG_PANEL = "#111111"
-BG_CARD = "#161616"
-BG_ROW = "#181818"
-BG_INPUT = "#1C1C1C"
+# ── Palette ──────────────────────────────────────────────────────────────────
+C = {
+    "bg":        "#080808",
+    "surface":   "#0E0E0E",
+    "card":      "#131313",
+    "input":     "#181818",
+    "border":    "#1E1E1E",
+    "border2":   "#2A2A2A",
 
-BORDER = "#242424"
-BORDER_MD = "#2E2E2E"
+    "accent":    "#3B82F6",
+    "accent_h":  "#2563EB",
+    "accent_bg": "#0C1929",
+    "accent_t":  "#93C5FD",
 
-ACCENT = "#2563EB"
-ACCENT_HOVER = "#1D4ED8"
-ACCENT_DIM = "#0F2340"
-ACCENT_TEXT = "#93C5FD"
+    "ok":        "#34D399",
+    "ok_bg":     "#041A10",
+    "ok_t":      "#6EE7B7",
 
-SUCCESS = "#22C55E"
-SUCCESS_DIM = "#052E16"
-SUCCESS_TEXT = "#86EFAC"
+    "err":       "#F87171",
+    "err_bg":    "#1E0808",
+    "err_t":     "#FCA5A5",
 
-DANGER = "#EF4444"
-DANGER_DIM = "#2A0808"
-DANGER_TEXT = "#FCA5A5"
-
-TEXT_PRIMARY = "#F5F5F5"
-TEXT_SECONDARY = "#888888"
-TEXT_MUTED = "#444444"
-TEXT_FAINT = "#333333"
+    "t0":        "#EFEFEF",
+    "t1":        "#666666",
+    "t2":        "#333333",
+    "t3":        "#1E1E1E",
+}
 
 
-def _font(family, size, weight="normal"):
+def font(family, size, weight="normal"):
     available = tkfont.families()
     fallbacks = {
-        "SF Pro Display": ["Helvetica Neue", "Helvetica", "Arial"],
-        "SF Pro Text": ["Helvetica Neue", "Helvetica", "Arial"],
-        "JetBrains Mono": ["Cascadia Code", "Consolas", "Courier New", "Courier"],
+        "Geist":       ["SF Pro Display", "Helvetica Neue", "Helvetica", "Arial"],
+        "Geist Mono":  ["JetBrains Mono", "Cascadia Code", "Consolas", "Courier New"],
     }
-
     resolved = family
-
     if family not in available:
         for alt in fallbacks.get(family, []):
             if alt in available:
@@ -73,812 +61,500 @@ def _font(family, size, weight="normal"):
                 break
         else:
             resolved = "TkDefaultFont"
+    return ctk.CTkFont(family=resolved, size=size, weight="bold" if weight == "bold" else "normal")
 
-    return ctk.CTkFont(family=resolved, size=size, weight="bold")
+
+# ── Reusable widget helpers ───────────────────────────────────────────────────
+def divider(parent, color=None, padx=0, pady=(0, 0)):
+    ctk.CTkFrame(parent, height=1, fg_color=color or C["border"]).pack(
+        fill="x", padx=padx, pady=pady
+    )
+
+
+def label(parent, text, size=11, color=None, weight="normal", anchor="w", **kw):
+    return ctk.CTkLabel(
+        parent,
+        text=text,
+        font=font("Geist", size, weight),
+        text_color=color or C["t0"],
+        anchor=anchor,
+        **kw,
+    )
 
 
 class TrainingDashboard(ctk.CTk):
 
     STEPS = [
-        "Load dataset",
-        "Dataset info",
-        "Split train / test",
-        "Build pipeline",
-        "Cross-validation setup",
-        "GridSearchCV tuning",
-        "Train best model",
-        "Predict test data",
-        "Evaluate model",
-        "Save model",
-        "Save metrics",
+        ("Load dataset",         "ti-database"),
+        ("Dataset info",         "ti-table"),
+        ("Split train / test",   "ti-scissors"),
+        ("Build pipeline",       "ti-git-merge"),
+        ("Cross-val setup",      "ti-rotate"),
+        ("GridSearchCV tuning",  "ti-adjustments"),
+        ("Train best model",     "ti-cpu"),
+        ("Predict test data",    "ti-bolt"),
+        ("Evaluate model",       "ti-chart-bar"),
+        ("Save model",           "ti-device-floppy"),
+        ("Save metrics",         "ti-file-description"),
     ]
 
+    # ── Init ──────────────────────────────────────────────────────────────────
     def __init__(self):
         super().__init__()
+        self.title("SVC · Training Dashboard")
+        self.geometry("1060x660")
+        self.minsize(920, 580)
+        self.configure(fg_color=C["bg"])
 
-        self.title("SVC Training Dashboard")
-        self.geometry("1120x700")
-        self.minsize(980, 620)
-        self.configure(fg_color=BG_BASE)
+        self._step_w: dict = {}
+        self._thread: threading.Thread | None = None
 
-        self._step_widgets: dict = {}
-        self._training_thread: threading.Thread | None = None
+        # Declared here so Pylance can resolve them; assigned in _right()
+        self._ri_time:    ctk.CTkLabel
+        self._ri_model:   ctk.CTkLabel
+        self._ri_metrics: ctk.CTkLabel
+        self._ri_kernel:  ctk.CTkLabel
+        self._ri_C:       ctk.CTkLabel
+        self._ri_gamma:   ctk.CTkLabel
+        self._ri_test:    ctk.CTkLabel
+        self._ri_cv:      ctk.CTkLabel
+        self._ri_cv_sc:   ctk.CTkLabel
+        self._ri_seed:    ctk.CTkLabel
 
-        self._r_time: ctk.CTkLabel
-        self._r_model: ctk.CTkLabel
-        self._r_metrics: ctk.CTkLabel
-        self._r_kernel: ctk.CTkLabel
-        self._r_C: ctk.CTkLabel
-        self._r_gamma: ctk.CTkLabel
-        self._r_test: ctk.CTkLabel
-        self._r_cv: ctk.CTkLabel
-        self._r_cvscore: ctk.CTkLabel
-        self._r_rstate: ctk.CTkLabel
+        self._build()
 
-        self._build_ui()
+    # ── Build ─────────────────────────────────────────────────────────────────
+    def _build(self):
+        self._topbar()
 
-    def _build_ui(self):
-        self._build_topbar()
-
-        body = ctk.CTkFrame(self, fg_color=BG_BASE)
+        body = ctk.CTkFrame(self, fg_color=C["bg"])
         body.pack(fill="both", expand=True)
-
-        body.grid_columnconfigure(0, weight=0, minsize=230)
-        body.grid_columnconfigure(1, weight=1)
-        body.grid_columnconfigure(2, weight=0, minsize=230)
+        body.grid_columnconfigure(0, weight=0, minsize=240)
+        body.grid_columnconfigure(1, weight=0, minsize=800)
+        body.grid_columnconfigure(2, weight=1, minsize=260)
         body.grid_rowconfigure(0, weight=1)
 
-        left = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=0)
-        center = ctk.CTkFrame(body, fg_color=BG_BASE, corner_radius=0)
-        right = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=0)
+        L = ctk.CTkFrame(body, fg_color=C["surface"], corner_radius=0)
+        M = ctk.CTkFrame(body, fg_color=C["bg"],      corner_radius=0)
+        R = ctk.CTkFrame(body, fg_color=C["surface"], corner_radius=0)
+        L.grid(row=0, column=0, sticky="nsew")
+        M.grid(row=0, column=1, sticky="nsew", padx=1)
+        R.grid(row=0, column=2, sticky="nsew")
 
-        left.grid(row=0, column=0, sticky="nsew")
-        center.grid(row=0, column=1, sticky="nsew", padx=(1, 1))
-        right.grid(row=0, column=2, sticky="nsew")
+        self._left(L)
+        self._center(M)
+        self._right(R)
 
-        self._build_left(left)
-        self._build_center(center)
-        self._build_right(right)
-
-    def _build_topbar(self):
-        bar = ctk.CTkFrame(self, height=52, fg_color=BG_CARD, corner_radius=0)
+    # ── Top bar ───────────────────────────────────────────────────────────────
+    def _topbar(self):
+        bar = ctk.CTkFrame(self, height=46, fg_color=C["card"], corner_radius=0)
         bar.pack(fill="x")
         bar.pack_propagate(False)
 
-        left_wrap = ctk.CTkFrame(bar, fg_color="transparent")
-        left_wrap.place(x=16, rely=0.5, anchor="w")
+        lw = ctk.CTkFrame(bar, fg_color="transparent")
+        lw.place(x=14, rely=0.5, anchor="w")
+        label(lw, "SVC Training", 13, C["t0"], "bold").pack(side="left")
+        label(lw, "  ·  StandardScaler · GridSearchCV · StratifiedKFold", 11, C["t2"]).pack(side="left")
 
-        ctk.CTkLabel(
-            left_wrap,
-            text="SVC Training Dashboard",
-            font=_font("SF Pro Display", 14, "bold"),
-            text_color=TEXT_PRIMARY,
-        ).pack(side="left")
+        rw = ctk.CTkFrame(bar, fg_color="transparent")
+        rw.place(relx=1, rely=0.5, anchor="e", x=-14)
 
-        ctk.CTkLabel(
-            left_wrap,
-            text="  ·  StandardScaler · GridSearchCV · StratifiedKFold",
-            font=_font("SF Pro Text", 12),
-            text_color=TEXT_MUTED,
-        ).pack(side="left")
-
-        right_wrap = ctk.CTkFrame(bar, fg_color="transparent")
-        right_wrap.place(relx=1.0, rely=0.5, anchor="e", x=-16)
-
-        self._status_badge = ctk.CTkLabel(
-            right_wrap,
-            text="● Ready",
-            font=_font("SF Pro Text", 11),
-            text_color=TEXT_MUTED,
-            fg_color=BG_INPUT,
-            corner_radius=100,
-            padx=10,
-            pady=3,
+        self._badge = ctk.CTkLabel(
+            rw, text="● Ready",
+            font=font("Geist", 10),
+            text_color=C["t2"], fg_color=C["input"],
+            corner_radius=100, padx=9, pady=2,
         )
-        self._status_badge.pack(side="left", padx=(0, 8))
+        self._badge.pack(side="left", padx=(0, 7))
 
         ctk.CTkButton(
-            right_wrap,
-            text="Clear",
-            width=72,
-            height=28,
-            fg_color=BG_INPUT,
-            hover_color=BORDER_MD,
-            text_color=TEXT_PRIMARY,
-            font=_font("SF Pro Text", 12),
-            border_width=1,
-            border_color=BORDER,
-            corner_radius=6,
+            rw, text="Clear", width=60, height=26,
+            fg_color=C["input"], hover_color=C["border2"],
+            text_color=C["t0"], font=font("Geist", 11),
+            border_width=1, border_color=C["border"], corner_radius=5,
             command=self._clear,
-        ).pack(side="left", padx=(0, 6))
+        ).pack(side="left", padx=(0, 5))
 
-        self._start_btn = ctk.CTkButton(
-            right_wrap,
-            text="Start training",
-            width=110,
-            height=28,
-            fg_color=ACCENT,
-            hover_color=ACCENT_HOVER,
-            text_color="#FFFFFF",
-            font=_font("SF Pro Text", 12, "bold"),
-            corner_radius=6,
-            command=self._start_training,
+        self._run_btn = ctk.CTkButton(
+            rw, text="▶  Start", width=88, height=26,
+            fg_color=C["accent"], hover_color=C["accent_h"],
+            text_color="#fff", font=font("Geist", 11, "bold"),
+            corner_radius=5, command=self._start,
         )
-        self._start_btn.pack(side="left")
+        self._run_btn.pack(side="left")
 
-        ctk.CTkFrame(self, height=1, fg_color=BORDER).pack(fill="x")
+        divider(self)
 
-    def _build_left(self, parent):
-        wrap = ctk.CTkScrollableFrame(
-            parent,
-            fg_color="transparent",
-            scrollbar_button_color=BORDER_MD,
-            scrollbar_button_hover_color="#3A3A3A",
-        )
-        wrap.pack(fill="both", expand=True)
+    # ── Left panel – steps ────────────────────────────────────────────────────
+    def _left(self, p):
+        sc = ctk.CTkScrollableFrame(p, fg_color="transparent",
+                                    scrollbar_button_color=C["border2"])
+        sc.pack(fill="both", expand=True)
 
-        prog = ctk.CTkFrame(wrap, fg_color="transparent")
-        prog.pack(fill="x", padx=12, pady=(12, 0))
+        hdr = ctk.CTkFrame(sc, fg_color="transparent")
+        hdr.pack(fill="x", padx=12, pady=(10, 0))
 
-        top_row = ctk.CTkFrame(prog, fg_color="transparent")
-        top_row.pack(fill="x", pady=(0, 4))
+        top = ctk.CTkFrame(hdr, fg_color="transparent")
+        top.pack(fill="x", pady=(0, 3))
+        self._pct = label(top, "0%", 20, C["t0"], "bold")
+        self._pct.pack(side="left")
+        self._msg = label(top, "Ready", 10, C["t2"])
+        self._msg.pack(side="right")
 
-        self._pct_label = ctk.CTkLabel(
-            top_row,
-            text="0%",
-            font=_font("SF Pro Display", 22, "bold"),
-            text_color=TEXT_PRIMARY,
-        )
-        self._pct_label.pack(side="left")
+        self._bar = ctk.CTkProgressBar(hdr, height=2, progress_color=C["accent"],
+                                       fg_color=C["input"], corner_radius=1)
+        self._bar.pack(fill="x")
+        self._bar.set(0)
 
-        self._status_msg = ctk.CTkLabel(
-            top_row,
-            text="Waiting to start",
-            font=_font("SF Pro Text", 10),
-            text_color=TEXT_MUTED,
-        )
-        self._status_msg.pack(side="right")
+        divider(sc, pady=(8, 4))
+        label(sc, "STEPS", 9, C["t3"], "bold").pack(anchor="w", padx=12, pady=(0, 3))
 
-        self._progress_bar = ctk.CTkProgressBar(
-            prog,
-            height=3,
-            progress_color=ACCENT,
-            fg_color=BG_INPUT,
-            corner_radius=2,
-        )
-        self._progress_bar.pack(fill="x")
-        self._progress_bar.set(0)
-
-        ctk.CTkFrame(wrap, height=1, fg_color=BORDER).pack(
-            fill="x", padx=0, pady=(12, 0)
-        )
-
-        ctk.CTkLabel(
-            wrap,
-            text="TRAINING STEPS",
-            font=_font("SF Pro Text", 9, "bold"),
-            text_color=TEXT_FAINT,
-        ).pack(anchor="w", padx=12, pady=(8, 4))
-
-        for i, step in enumerate(self.STEPS):
-            row = ctk.CTkFrame(wrap, fg_color=BG_ROW, corner_radius=6, height=36)
-            row.pack(fill="x", padx=8, pady=2)
+        for step, _ in self.STEPS:
+            row = ctk.CTkFrame(sc, fg_color=C["input"], corner_radius=5, height=30)
+            row.pack(fill="x", padx=8, pady=1)
             row.pack_propagate(False)
 
-            num = ctk.CTkLabel(
-                row,
-                text=str(i + 1),
-                width=20,
-                height=20,
-                font=_font("SF Pro Text", 10),
-                text_color=TEXT_MUTED,
-                fg_color=BG_INPUT,
-                corner_radius=10,
-            )
-            num.pack(side="left", padx=(8, 6), pady=8)
+            num = ctk.CTkLabel(row, text=str(len(self._step_w) + 1),
+                               width=18, height=18,
+                               font=font("Geist Mono", 9),
+                               text_color=C["t1"], fg_color=C["border"],
+                               corner_radius=9)
+            num.pack(side="left", padx=(7, 5), pady=6)
 
-            lbl = ctk.CTkLabel(
-                row,
-                text=step,
-                font=_font("SF Pro Text", 12),
-                text_color=TEXT_SECONDARY,
-                anchor="w",
-            )
-            lbl.pack(side="left", pady=8, fill="x", expand=True)
+            lbl = ctk.CTkLabel(row, text=step,
+                               font=font("Geist", 11),
+                               text_color=C["t1"], anchor="w")
+            lbl.pack(side="left", fill="x", expand=True)
 
-            icon = ctk.CTkLabel(
-                row,
-                text="",
-                font=_font("SF Pro Text", 11),
-                text_color=TEXT_MUTED,
-                width=24,
-            )
-            icon.pack(side="right", padx=6)
+            ico = ctk.CTkLabel(row, text="", font=font("Geist", 11),
+                               text_color=C["t2"], width=20)
+            ico.pack(side="right", padx=5)
 
-            self._step_widgets[step] = {
-                "row": row,
-                "num": num,
-                "label": lbl,
-                "icon": icon,
-            }
+            self._step_w[step] = {"row": row, "num": num, "lbl": lbl, "ico": ico}
 
-    def _build_center(self, parent):
-        scroll = ctk.CTkScrollableFrame(
-            parent,
-            fg_color="transparent",
-            scrollbar_button_color=BORDER_MD,
+    # ── Center panel ─────────────────────────────────────────────────────────
+    def _center(self, p):
+        sc = ctk.CTkScrollableFrame(p, fg_color="transparent",
+                                    scrollbar_button_color=C["border2"])
+        sc.pack(fill="both", expand=True)
+
+        # Metric cards row
+        mr = ctk.CTkFrame(sc, fg_color="transparent")
+        mr.pack(fill="x", padx=10, pady=(10, 0))
+        mr.grid_columnconfigure((0, 1, 2), weight=1)
+        self._acc = self._mcard(mr, "Accuracy",    0)
+        self._f1w = self._mcard(mr, "F1 weighted", 1)
+        self._f1m = self._mcard(mr, "F1 macro",    2)
+
+        # Dataset summary
+        dc = self._card(sc, "Dataset", pady=8)
+        self._ds_lbl = label(dc, "No dataset loaded.", 10, C["t1"],
+                             justify="left", wraplength=400)
+        self._ds_lbl.configure(font=font("Geist Mono", 10))
+        self._ds_lbl.pack(anchor="w", padx=10, pady=(6, 8), fill="x")
+
+        # Confusion matrix
+        cc = self._card(sc, "Confusion matrix", pady=6, expand=True)
+        self._cm_box = ctk.CTkTextbox(
+            cc, fg_color=C["bg"], text_color=C["t1"],
+            font=font("Geist Mono", 10), corner_radius=3,
+            border_width=0, height=155,
         )
-        scroll.pack(fill="both", expand=True)
+        self._cm_box.pack(fill="both", expand=True, padx=8, pady=(4, 8))
+        self._cm_box.insert("end", "Awaiting evaluation…")
+        self._cm_box.configure(state="disabled")
 
-        metrics_row = ctk.CTkFrame(scroll, fg_color="transparent")
-        metrics_row.pack(fill="x", padx=10, pady=(10, 0))
-        metrics_row.grid_columnconfigure((0, 1, 2), weight=1)
+    # ── Right panel ───────────────────────────────────────────────────────────
+    def _right(self, p):
+        wr = ctk.CTkFrame(p, fg_color="transparent")
+        wr.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self._acc_val = self._metric_card(metrics_row, "Accuracy", 0)
-        self._f1w_val = self._metric_card(metrics_row, "F1 weighted", 1)
-        self._f1m_val = self._metric_card(metrics_row, "F1 macro", 2)
+        label(wr, "RUN INFO", 9, C["t3"], "bold").pack(anchor="w", pady=(0, 5))
 
-        ds_card = self._section_card(scroll, "Dataset summary", pady_top=10)
+        ic = ctk.CTkFrame(wr, fg_color=C["card"], corner_radius=7,
+                          border_width=1, border_color=C["border"])
+        ic.pack(fill="x")
 
-        self._dataset_label = ctk.CTkLabel(
-            ds_card,
-            text="No dataset loaded yet.",
-            font=_font("JetBrains Mono", 10),
-            text_color=TEXT_SECONDARY,
-            justify="left",
-            anchor="w",
+        rows = [
+            ("Time",    "_ri_time",    "—",   True),
+            ("Model",   "_ri_model",  "—",   True),
+            ("Metrics", "_ri_metrics","—",   True),
+            ("Kernel",  "_ri_kernel", "—",   False),
+            ("Best C",  "_ri_C",      "—",   True),
+            ("γ",       "_ri_gamma",  "—",   False),
+            ("Test sz", "_ri_test",   "20%", False),
+            ("CV folds","_ri_cv",     "5",   True),
+            ("Best CV", "_ri_cv_sc",  "—",   True),
+            ("Seed",    "_ri_seed",   "42",  True),
+        ]
+        for lbl_txt, attr, default, mono in rows:
+            r = ctk.CTkFrame(ic, fg_color="transparent", height=26)
+            r.pack(fill="x")
+            r.pack_propagate(False)
+            ctk.CTkLabel(r, text=lbl_txt, font=font("Geist", 10),
+                         text_color=C["t1"], anchor="w", width=72).pack(side="left", padx=8)
+            v = ctk.CTkLabel(r, text=default,
+                             font=font("Geist Mono" if mono else "Geist", 10),
+                             text_color=C["t0"], anchor="e",
+                             wraplength=120, justify="right")
+            v.pack(side="right", padx=8)
+            setattr(self, attr, v)
+            divider(ic)
+
+        label(wr, "CLASSIFICATION REPORT", 9, C["t3"], "bold").pack(
+            anchor="w", pady=(10, 5))
+
+        self._rep_box = ctk.CTkTextbox(
+            wr, fg_color=C["card"], text_color=C["t1"],
+            font=font("Geist Mono", 10), corner_radius=7,
+            border_width=1, border_color=C["border"],
         )
-        self._dataset_label.pack(anchor="w", padx=12, pady=(8, 10), fill="x")
+        self._rep_box.pack(fill="both", expand=True)
+        self._rep_box.insert("end", "No report yet.")
+        self._rep_box.configure(state="disabled")
 
-        cm_card = self._section_card(scroll, "Confusion matrix", pady_top=8, expand=True)
+    # ── Widget factory helpers ────────────────────────────────────────────────
+    def _card(self, parent, title, pady=8, expand=False):
+        outer = ctk.CTkFrame(parent, fg_color=C["card"], corner_radius=7,
+                             border_width=1, border_color=C["border"])
+        pack_kw = dict(fill="both" if expand else "x", expand=expand,
+                       padx=10, pady=pady)
+        outer.pack(**pack_kw)
 
-        self._matrix_box = ctk.CTkTextbox(
-            cm_card,
-            fg_color=BG_BASE,
-            text_color=TEXT_SECONDARY,
-            font=_font("JetBrains Mono", 10),
-            corner_radius=4,
-            border_width=0,
-            height=170,
-        )
-        self._matrix_box.pack(fill="both", expand=True, padx=10, pady=(6, 10))
-        self._matrix_box.insert("end", "Awaiting evaluation…")
-        self._matrix_box.configure(state="disabled")
-
-    def _build_right(self, parent):
-        wrap = ctk.CTkFrame(parent, fg_color="transparent")
-        wrap.pack(fill="both", expand=True, padx=12, pady=12)
-
-        ctk.CTkLabel(
-            wrap,
-            text="RUN INFO",
-            font=_font("SF Pro Text", 9, "bold"),
-            text_color=TEXT_FAINT,
-        ).pack(anchor="w", pady=(0, 6))
-
-        info_card = ctk.CTkFrame(
-            wrap,
-            fg_color=BG_CARD,
-            corner_radius=8,
-            border_width=1,
-            border_color=BORDER,
-        )
-        info_card.pack(fill="x")
-
-        def info_row(label, attr, default="—", mono=True):
-            row = ctk.CTkFrame(info_card, fg_color="transparent", height=30)
-            row.pack(fill="x")
-            row.pack_propagate(False)
-
-            ctk.CTkLabel(
-                row,
-                text=label,
-                font=_font("SF Pro Text", 11),
-                text_color=TEXT_SECONDARY,
-                anchor="w",
-                width=92,
-            ).pack(side="left", padx=10)
-
-            val = ctk.CTkLabel(
-                row,
-                text=default,
-                font=_font("JetBrains Mono" if mono else "SF Pro Text", 10),
-                text_color=TEXT_PRIMARY,
-                anchor="e",
-                wraplength=118,
-                justify="right",
-            )
-            val.pack(side="right", padx=10)
-            setattr(self, attr, val)
-
-            ctk.CTkFrame(info_card, height=1, fg_color=BORDER).pack(fill="x")
-
-        info_row("Training time", "_r_time")
-        info_row("Model path", "_r_model")
-        info_row("Metrics path", "_r_metrics")
-        info_row("Kernel", "_r_kernel", "—", mono=False)
-        info_row("Best C", "_r_C", "—")
-        info_row("Best gamma", "_r_gamma", "—", mono=False)
-        info_row("Test size", "_r_test", "20%", mono=False)
-        info_row("CV folds", "_r_cv", "5")
-        info_row("Best CV", "_r_cvscore", "—")
-        info_row("Random state", "_r_rstate", "42")
-
-        ctk.CTkLabel(
-            wrap,
-            text="CLASSIFICATION REPORT",
-            font=_font("SF Pro Text", 9, "bold"),
-            text_color=TEXT_FAINT,
-        ).pack(anchor="w", pady=(12, 6))
-
-        self._report_box = ctk.CTkTextbox(
-            wrap,
-            fg_color=BG_CARD,
-            text_color=TEXT_SECONDARY,
-            font=_font("JetBrains Mono", 10),
-            corner_radius=8,
-            border_width=1,
-            border_color=BORDER,
-        )
-        self._report_box.pack(fill="both", expand=True)
-        self._report_box.insert("end", "No report yet.")
-        self._report_box.configure(state="disabled")
-
-    def _section_card(self, parent, title, pady_top=8, expand=False):
-        outer = ctk.CTkFrame(
-            parent,
-            fg_color=BG_CARD,
-            corner_radius=8,
-            border_width=1,
-            border_color=BORDER,
-        )
-
-        if expand:
-            outer.pack(fill="both", expand=True, padx=10, pady=pady_top)
-        else:
-            outer.pack(fill="x", padx=10, pady=pady_top)
-
-        hdr = ctk.CTkFrame(outer, fg_color="transparent", height=32)
+        hdr = ctk.CTkFrame(outer, fg_color="transparent", height=28)
         hdr.pack(fill="x")
         hdr.pack_propagate(False)
-
-        ctk.CTkLabel(
-            hdr,
-            text=title,
-            font=_font("SF Pro Display", 12, "bold"),
-            text_color=TEXT_PRIMARY,
-        ).pack(side="left", padx=12, pady=6)
-
-        ctk.CTkFrame(outer, height=1, fg_color=BORDER).pack(fill="x")
-
+        ctk.CTkLabel(hdr, text=title, font=font("Geist", 11, "bold"),
+                     text_color=C["t0"]).pack(side="left", padx=10)
+        divider(outer)
         return outer
 
-    def _metric_card(self, parent, title, col):
-        card = ctk.CTkFrame(
-            parent,
-            fg_color=BG_CARD,
-            corner_radius=8,
-            border_width=1,
-            border_color=BORDER,
-        )
-        card.grid(
-            row=0,
-            column=col,
-            padx=(0 if col == 0 else 6, 0),
-            sticky="nsew",
-            pady=0,
-        )
+    def _mcard(self, parent, title, col):
+        card = ctk.CTkFrame(parent, fg_color=C["card"], corner_radius=7,
+                            border_width=1, border_color=C["border"])
+        card.grid(row=0, column=col, padx=(0 if col == 0 else 5, 0), sticky="nsew")
+        label(card, title, 10, C["t1"]).pack(anchor="w", padx=8, pady=(6, 1))
+        val = ctk.CTkLabel(card, text="—", font=font("Geist", 18, "bold"),
+                           text_color=C["t2"])
+        val.pack(anchor="w", padx=8, pady=(0, 6))
+        return val
 
-        ctk.CTkLabel(
-            card,
-            text=title,
-            font=_font("SF Pro Text", 11),
-            text_color=TEXT_SECONDARY,
-        ).pack(anchor="w", padx=10, pady=(8, 2))
-
-        val_lbl = ctk.CTkLabel(
-            card,
-            text="—",
-            font=_font("SF Pro Display", 20, "bold"),
-            text_color=TEXT_MUTED,
-        )
-        val_lbl.pack(anchor="w", padx=10, pady=(0, 8))
-
-        return val_lbl
-
-    def _set_step(self, step, state: str):
-        w = self._step_widgets[step]
-
+    # ── Step state ───────────────────────────────────────────────────────────
+    def _step(self, step, state):
+        w = self._step_w[step]
         if state == "active":
-            w["row"].configure(fg_color=ACCENT_DIM)
-            w["num"].configure(text_color=ACCENT_TEXT, fg_color="#0D2A5A")
-            w["label"].configure(text_color=ACCENT_TEXT)
-            w["icon"].configure(text="●", text_color=ACCENT)
-
+            w["row"].configure(fg_color=C["accent_bg"])
+            w["num"].configure(text_color=C["accent_t"], fg_color="#0A2040")
+            w["lbl"].configure(text_color=C["accent_t"])
+            w["ico"].configure(text="●", text_color=C["accent"])
         elif state == "done":
-            w["row"].configure(fg_color=SUCCESS_DIM)
-            w["num"].configure(text_color=SUCCESS_TEXT, fg_color="#0A2010")
-            w["label"].configure(text_color=SUCCESS_TEXT)
-            w["icon"].configure(text="✓", text_color=SUCCESS)
-
+            w["row"].configure(fg_color=C["ok_bg"])
+            w["num"].configure(text_color=C["ok_t"], fg_color="#051A0C")
+            w["lbl"].configure(text_color=C["ok_t"])
+            w["ico"].configure(text="✓", text_color=C["ok"])
         elif state == "error":
-            w["row"].configure(fg_color=DANGER_DIM)
-            w["num"].configure(text_color=DANGER_TEXT, fg_color="#2A0808")
-            w["label"].configure(text_color=DANGER_TEXT)
-            w["icon"].configure(text="✕", text_color=DANGER)
-
+            w["row"].configure(fg_color=C["err_bg"])
+            w["num"].configure(text_color=C["err_t"], fg_color="#200808")
+            w["lbl"].configure(text_color=C["err_t"])
+            w["ico"].configure(text="✕", text_color=C["err"])
         else:
-            w["row"].configure(fg_color=BG_ROW)
-            w["num"].configure(text_color=TEXT_MUTED, fg_color=BG_INPUT)
-            w["label"].configure(text_color=TEXT_SECONDARY)
-            w["icon"].configure(text="", text_color=TEXT_MUTED)
-
+            w["row"].configure(fg_color=C["input"])
+            w["num"].configure(text_color=C["t1"], fg_color=C["border"])
+            w["lbl"].configure(text_color=C["t1"])
+            w["ico"].configure(text="", text_color=C["t2"])
         self.update_idletasks()
 
-    def _set_progress(self, pct: int, msg: str):
-        self._progress_bar.set(pct / 100)
-        self._pct_label.configure(text=f"{pct}%")
-        self._status_msg.configure(text=msg)
+    def _prog(self, pct, msg):
+        self._bar.set(pct / 100)
+        self._pct.configure(text=f"{pct}%")
+        self._msg.configure(text=msg)
         self.update_idletasks()
 
-    def _set_badge(self, state: str):
-        configs = {
-            "ready": ("● Ready", TEXT_MUTED, BG_INPUT),
-            "running": ("● Training…", ACCENT, ACCENT_DIM),
-            "done": ("✓ Done", SUCCESS, SUCCESS_DIM),
-            "error": ("✕ Error", DANGER, DANGER_DIM),
+    def _set_badge(self, state):
+        cfg = {
+            "ready":   ("● Ready",    C["t2"],     C["input"]),
+            "running": ("● Running",  C["accent"],  C["accent_bg"]),
+            "done":    ("✓ Done",     C["ok"],      C["ok_bg"]),
+            "error":   ("✕ Error",    C["err"],     C["err_bg"]),
         }
-
-        text, fg, bg = configs[state]
-        self._status_badge.configure(text=text, text_color=fg, fg_color=bg)
+        t, fg, bg = cfg[state]
+        self._badge.configure(text=t, text_color=fg, fg_color=bg)
         self.update_idletasks()
 
-    def _write_textbox(self, tb: ctk.CTkTextbox, text: str):
+    def _write(self, tb, text):
         tb.configure(state="normal")
         tb.delete("1.0", "end")
         tb.insert("end", text)
         tb.configure(state="disabled")
 
-    def _set_metric(self, widget: ctk.CTkLabel, value: str):
-        widget.configure(text=value, text_color=TEXT_PRIMARY)
-
+    # ── Actions ───────────────────────────────────────────────────────────────
     def _clear(self):
-        self._set_progress(0, "Waiting to start")
+        self._prog(0, "Ready")
         self._set_badge("ready")
+        for step, _ in self.STEPS:
+            self._step(step, "pending")
+        for w in (self._acc, self._f1w, self._f1m):
+            w.configure(text="—", text_color=C["t2"])
+        self._ds_lbl.configure(text="No dataset loaded.")
+        for attr in ("_ri_time","_ri_model","_ri_metrics","_ri_kernel",
+                     "_ri_C","_ri_gamma","_ri_cv_sc"):
+            getattr(self, attr).configure(text="—")
+        self._write(self._cm_box, "Awaiting evaluation…")
+        self._write(self._rep_box, "No report yet.")
 
-        for step in self.STEPS:
-            self._set_step(step, "pending")
-
-        for w in (self._acc_val, self._f1w_val, self._f1m_val):
-            w.configure(text="—", text_color=TEXT_MUTED)
-
-        self._dataset_label.configure(text="No dataset loaded yet.")
-
-        self._r_time.configure(text="—")
-        self._r_model.configure(text="—")
-        self._r_metrics.configure(text="—")
-        self._r_kernel.configure(text="—")
-        self._r_C.configure(text="—")
-        self._r_gamma.configure(text="—")
-        self._r_cvscore.configure(text="—")
-
-        self._write_textbox(self._matrix_box, "Awaiting evaluation…")
-        self._write_textbox(self._report_box, "No report yet.")
-
-    def _start_training(self):
+    def _start(self):
         self._clear()
-        self._start_btn.configure(state="disabled")
+        self._run_btn.configure(state="disabled")
         self._set_badge("running")
+        self._thread = threading.Thread(target=self._train, daemon=True)
+        self._thread.start()
 
-        self._training_thread = threading.Thread(target=self._train, daemon=True)
-        self._training_thread.start()
-
+    # ── Training thread ───────────────────────────────────────────────────────
     def _train(self):
+        step_names = [s for s, _ in self.STEPS]
         try:
-            self._set_step("Load dataset", "active")
-            self._set_progress(5, "Loading and preprocessing dataset")
-
+            # 1 · Load
+            self._step(step_names[0], "active"); self._prog(5, "Loading dataset")
             X, y = load_and_prepare_data()
+            time.sleep(0.2); self._step(step_names[0], "done")
 
-            time.sleep(0.3)
-            self._set_step("Load dataset", "done")
+            # 2 · Info
+            self._step(step_names[1], "active"); self._prog(12, "Dataset info")
+            ds = (f"Shape  : {X.shape}  |  records: {len(y):,}\n"
+                  f"Classes:\n{y.value_counts().to_string()}")
+            self._ds_lbl.configure(text=ds)
+            time.sleep(0.2); self._step(step_names[1], "done")
 
-            self._set_step("Dataset info", "active")
-            self._set_progress(12, "Reading dataset information")
-
-            ds_text = (
-                f"Feature shape : {X.shape}\n"
-                f"Target shape  : {y.shape}\n\n"
-                f"Total records : {len(y):,}\n"
-                f"Total features: {X.shape[1]}\n\n"
-                f"Class distribution:\n"
-                + y.value_counts().to_string()
-            )
-
-            self._dataset_label.configure(text=ds_text)
-
-            time.sleep(0.3)
-            self._set_step("Dataset info", "done")
-
-            self._set_step("Split train / test", "active")
-            self._set_progress(20, "Splitting dataset into train / test sets")
-
+            # 3 · Split
+            self._step(step_names[2], "active"); self._prog(20, "Train / test split")
             X_train, X_test, y_train, y_test = train_test_split(
-                X,
-                y,
-                test_size=0.2,
-                random_state=42,
-                stratify=y,
-            )
+                X, y, test_size=0.2, random_state=42, stratify=y)
+            ds += (f"\n\nTrain: {X_train.shape}  Test: {X_test.shape}")
+            self._ds_lbl.configure(text=ds)
+            time.sleep(0.2); self._step(step_names[2], "done")
 
-            ds_text += (
-                f"\n\nTrain / test split:\n"
-                f"  X_train : {X_train.shape}\n"
-                f"  X_test  : {X_test.shape}\n"
-                f"  y_train : {y_train.shape}\n"
-                f"  y_test  : {y_test.shape}"
-            )
+            # 4 · Pipeline
+            self._step(step_names[3], "active"); self._prog(28, "Building pipeline")
+            pipeline = Pipeline([("scaler", StandardScaler()), ("svc", SVC(random_state=42))])
+            time.sleep(0.2); self._step(step_names[3], "done")
 
-            self._dataset_label.configure(text=ds_text)
+            # 5 · CV setup
+            self._step(step_names[4], "active"); self._prog(36, "Cross-val setup")
+            cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+            time.sleep(0.2); self._step(step_names[4], "done")
 
-            time.sleep(0.3)
-            self._set_step("Split train / test", "done")
-
-            self._set_step("Build pipeline", "active")
-            self._set_progress(30, "Building StandardScaler + SVC pipeline")
-
-            pipeline = Pipeline([
-                ("scaler", StandardScaler()),
-                ("svc", SVC(random_state=42)),
-            ])
-
-            time.sleep(0.3)
-            self._set_step("Build pipeline", "done")
-
-            self._set_step("Cross-validation setup", "active")
-            self._set_progress(38, "Preparing StratifiedKFold cross-validation")
-
-            cv = StratifiedKFold(
-                n_splits=5,
-                shuffle=True,
-                random_state=42,
-            )
-
-            time.sleep(0.3)
-            self._set_step("Cross-validation setup", "done")
-
-            self._set_step("GridSearchCV tuning", "active")
-            self._set_progress(48, "Searching for best SVC parameters")
-
+            # 6 · GridSearch
+            self._step(step_names[5], "active"); self._prog(46, "GridSearchCV…")
             param_grid = {
                 "svc__kernel": ["rbf"],
-                "svc__C": [0.1, 1, 10, 100],
-                "svc__gamma": ["scale", "auto", 0.01, 0.1, 1],
+                "svc__C":      [0.1, 1, 10, 100],
+                "svc__gamma":  ["scale", "auto", 0.01, 0.1, 1],
             }
+            gs = GridSearchCV(pipeline, param_grid, scoring="f1_weighted",
+                              cv=cv, n_jobs=-1, verbose=0)
+            t0 = time.time()
+            gs.fit(X_train, y_train)
+            elapsed = time.time() - t0
 
-            grid_search = GridSearchCV(
-                estimator=pipeline,
-                param_grid=param_grid,
-                scoring="f1_weighted",
-                cv=cv,
-                n_jobs=-1,
-                verbose=2,
-            )
+            bp = gs.best_params_
+            bscore = gs.best_score_
+            self._ri_time.configure(text=f"{elapsed:.2f}s")
+            self._ri_kernel.configure(text=str(bp.get("svc__kernel", "rbf")))
+            self._ri_C.configure(text=str(bp.get("svc__C", "—")))
+            self._ri_gamma.configure(text=str(bp.get("svc__gamma", "—")))
+            self._ri_cv_sc.configure(text=f"{bscore:.4f}")
+            self._prog(62, "GridSearch done"); self._step(step_names[5], "done")
 
-            start_time = time.time()
+            # 7 · Best model
+            self._step(step_names[6], "active"); self._prog(70, "Best model")
+            model = gs.best_estimator_
+            cv_scores = cross_val_score(model, X_train, y_train,
+                                        cv=cv, scoring="f1_weighted", n_jobs=-1)
+            time.sleep(0.2); self._step(step_names[6], "done")
 
-            grid_search.fit(X_train, y_train)
-
-            training_time = time.time() - start_time
-
-            best_params = grid_search.best_params_
-            best_cv_score = grid_search.best_score_
-
-            self._r_time.configure(text=f"{training_time:.4f} s")
-            self._r_kernel.configure(text=str(best_params.get("svc__kernel", "rbf")))
-            self._r_C.configure(text=str(best_params.get("svc__C", "—")))
-            self._r_gamma.configure(text=str(best_params.get("svc__gamma", "—")))
-            self._r_cvscore.configure(text=f"{best_cv_score:.4f}")
-
-            self._set_progress(62, "GridSearchCV tuning complete")
-            self._set_step("GridSearchCV tuning", "done")
-
-            self._set_step("Train best model", "active")
-            self._set_progress(70, "Selecting best trained model")
-
-            model = grid_search.best_estimator_
-
-            cv_scores = cross_val_score(
-                model,
-                X_train,
-                y_train,
-                cv=cv,
-                scoring="f1_weighted",
-                n_jobs=-1,
-            )
-
-            time.sleep(0.3)
-            self._set_step("Train best model", "done")
-
-            self._set_step("Predict test data", "active")
-            self._set_progress(78, "Generating predictions on test set")
-
+            # 8 · Predict
+            self._step(step_names[7], "active"); self._prog(78, "Predicting…")
             y_pred = model.predict(X_test)
+            time.sleep(0.2); self._step(step_names[7], "done")
 
-            time.sleep(0.3)
-            self._set_step("Predict test data", "done")
-
-            self._set_step("Evaluate model", "active")
-            self._set_progress(86, "Computing accuracy, F1, and confusion matrix")
-
-            accuracy = accuracy_score(y_test, y_pred)
-            f1_weighted = f1_score(y_test, y_pred, average="weighted")
-            f1_macro = f1_score(y_test, y_pred, average="macro")
-            cm = confusion_matrix(y_test, y_pred)
-
-            report_dict = cast(
-                Dict[str, Any],
-                classification_report(
-                    y_test,
-                    y_pred,
-                    output_dict=True,
-                )
-            )
-
-            report_text = str(
-                classification_report(
-                    y_test,
-                    y_pred,
-                    output_dict=False,
-                )
-            )
-
+            # 9 · Evaluate
+            self._step(step_names[8], "active"); self._prog(86, "Evaluating…")
+            acc   = accuracy_score(y_test, y_pred)
+            f1w   = f1_score(y_test, y_pred, average="weighted")
+            f1m   = f1_score(y_test, y_pred, average="macro")
+            cm    = confusion_matrix(y_test, y_pred)
+            rdict = cast(Dict[str, Any], classification_report(y_test, y_pred, output_dict=True))
+            rtxt  = str(classification_report(y_test, y_pred, output_dict=False))
             labels = sorted(y.unique())
 
-            self._set_metric(self._acc_val, f"{accuracy:.2%}")
-            self._set_metric(self._f1w_val, f"{f1_weighted:.2%}")
-            self._set_metric(self._f1m_val, f"{f1_macro:.2%}")
+            self._acc.configure(text=f"{acc:.1%}", text_color=C["t0"])
+            self._f1w.configure(text=f"{f1w:.1%}", text_color=C["t0"])
+            self._f1m.configure(text=f"{f1m:.1%}", text_color=C["t0"])
 
-            matrix_str = "Labels:  " + ", ".join(str(l) for l in labels)
-            matrix_str += "\n\nMatrix:\n" + str(cm)
-            matrix_str += "\n\nPer class:\n"
+            cm_str  = "Labels: " + ", ".join(str(l) for l in labels)
+            cm_str += "\n\n" + str(cm)
+            cm_str += "\n\nCV scores : " + str(cv_scores.round(4))
+            cm_str += f"\nCV mean   : {cv_scores.mean():.4f}  std: {cv_scores.std():.4f}"
+            cm_str += f"\n\nBest params: {bp}"
 
-            for i, row in enumerate(cm):
-                matrix_str += f"  {labels[i]}: {row}\n"
+            self._write(self._cm_box, cm_str)
+            self._write(self._rep_box, rtxt)
+            time.sleep(0.2); self._step(step_names[8], "done")
 
-            matrix_str += "\nGridSearchCV:\n"
-            matrix_str += f"  Best params   : {best_params}\n"
-            matrix_str += f"  Best CV score : {best_cv_score:.4f}\n"
-
-            matrix_str += "\nCross validation scores:\n"
-            matrix_str += f"  Scores : {cv_scores}\n"
-            matrix_str += f"  Mean   : {cv_scores.mean():.4f}\n"
-            matrix_str += f"  Std    : {cv_scores.std():.4f}\n"
-
-            self._write_textbox(self._matrix_box, matrix_str)
-            self._write_textbox(self._report_box, report_text)
-
-            time.sleep(0.3)
-            self._set_step("Evaluate model", "done")
-
-            self._set_step("Save model", "active")
-            self._set_progress(93, "Saving trained model to disk")
-
-            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-            ROOT_DIR = os.path.dirname(BASE_DIR)
-            MODEL_DIR = os.path.join(ROOT_DIR, "models")
-
+            # 10 · Save model
+            self._step(step_names[9], "active"); self._prog(93, "Saving model…")
+            ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            MODEL_DIR = os.path.join(ROOT, "models")
             os.makedirs(MODEL_DIR, exist_ok=True)
-
-            MODEL_PATH = os.path.join(MODEL_DIR, "svc_model.pkl")
-            METRICS_JSON_PATH = os.path.join(MODEL_DIR, "svc_model_metrics.json")
-
+            MODEL_PATH   = os.path.join(MODEL_DIR, "svc_model.pkl")
+            METRICS_PATH = os.path.join(MODEL_DIR, "svc_model_metrics.json")
             joblib.dump(model, MODEL_PATH)
+            self._ri_model.configure(text=os.path.basename(MODEL_PATH))
+            time.sleep(0.2); self._step(step_names[9], "done")
 
-            self._r_model.configure(text=MODEL_PATH)
-
-            time.sleep(0.3)
-            self._set_step("Save model", "done")
-
-            self._set_step("Save metrics", "active")
-            self._set_progress(97, "Saving metrics JSON")
-
-            metrics_payload = {
+            # 11 · Save metrics
+            self._step(step_names[10], "active"); self._prog(97, "Saving metrics…")
+            payload = {
                 "model_name": "SVC",
-
-                "model_config": {
-                    "scaler": "StandardScaler",
-                    "classifier": "SVC",
-                    "best_params": best_params,
-                    "best_cv_score": float(best_cv_score),
-                    "cv_folds": 5,
-                    "scoring": "f1_weighted",
-                    "random_state": 42,
-                },
-
-                "dataset_info": {
-                    "feature_shape": list(X.shape),
-                    "target_shape": int(y.shape[0]),
-                    "train_shape": list(X_train.shape),
-                    "test_shape": list(X_test.shape),
-                    "test_size": 0.2,
-                    "random_state": 42,
-                    "stratify": True,
-                },
-
+                "model_config": {"scaler": "StandardScaler", "classifier": "SVC",
+                                 "best_params": bp, "best_cv_score": float(bscore),
+                                 "cv_folds": 5, "scoring": "f1_weighted", "random_state": 42},
+                "dataset_info": {"feature_shape": list(X.shape), "target_shape": int(y.shape[0]),
+                                 "train_shape": list(X_train.shape), "test_shape": list(X_test.shape),
+                                 "test_size": 0.2, "random_state": 42, "stratify": True},
                 "class_labels": labels,
-
-                "class_distribution": {
-                    "full_dataset": y.value_counts().to_dict(),
-                    "train_set": y_train.value_counts().to_dict(),
-                    "test_set": y_test.value_counts().to_dict(),
-                },
-
-                "grid_search": {
-                    "param_grid": param_grid,
-                    "best_params": best_params,
-                    "best_score": float(best_cv_score),
-                    "cv_folds": 5,
-                    "scoring": "f1_weighted",
-                },
-
-                "cross_validation": {
-                    "cv_scores": cv_scores.tolist(),
-                    "mean_cv_score": float(cv_scores.mean()),
-                    "std_cv_score": float(cv_scores.std()),
-                    "cv_folds": 5,
-                    "scoring": "f1_weighted",
-                },
-
-                "test_metrics": {
-                    "accuracy": float(accuracy),
-                    "f1_weighted": float(f1_weighted),
-                    "f1_macro": float(f1_macro),
-                    "confusion_matrix": cm.tolist(),
-                    "classification_report": report_dict,
-                },
-
-                "training_time_seconds": float(training_time),
-
-                "feature_names": (
-                    list(X.columns)
-                    if hasattr(X, "columns")
-                    else []
-                ),
+                "class_distribution": {"full": y.value_counts().to_dict(),
+                                       "train": y_train.value_counts().to_dict(),
+                                       "test": y_test.value_counts().to_dict()},
+                "grid_search": {"param_grid": param_grid, "best_params": bp,
+                                "best_score": float(bscore), "cv_folds": 5, "scoring": "f1_weighted"},
+                "cross_validation": {"cv_scores": cv_scores.tolist(),
+                                     "mean": float(cv_scores.mean()), "std": float(cv_scores.std()),
+                                     "cv_folds": 5, "scoring": "f1_weighted"},
+                "test_metrics": {"accuracy": float(acc), "f1_weighted": float(f1w),
+                                 "f1_macro": float(f1m), "confusion_matrix": cm.tolist(),
+                                 "classification_report": rdict},
+                "training_time_seconds": float(elapsed),
+                "feature_names": list(X.columns) if hasattr(X, "columns") else [],
             }
+            with open(METRICS_PATH, "w") as fh:
+                json.dump(payload, fh, indent=2)
+            self._ri_metrics.configure(text=os.path.basename(METRICS_PATH))
+            time.sleep(0.2); self._step(step_names[10], "done")
 
-            with open(METRICS_JSON_PATH, "w") as fh:
-                json.dump(metrics_payload, fh, indent=2)
-
-            self._r_metrics.configure(text=METRICS_JSON_PATH)
-
-            time.sleep(0.3)
-            self._set_step("Save metrics", "done")
-
-            self._set_progress(100, "Completed successfully")
-            self._set_badge("done")
+            self._prog(100, "Complete"); self._set_badge("done")
 
         except Exception as exc:
             self._set_badge("error")
-            self._set_progress(
-                int(self._progress_bar.get() * 100),
-                "Error — see report panel",
-            )
-
-            for step in self.STEPS:
-                w = self._step_widgets[step]
-                if w["icon"].cget("text") == "●":
-                    self._set_step(step, "error")
-
-            self._write_textbox(
-                self._report_box,
-                f"ERROR\n{'─' * 36}\n{type(exc).__name__}: {exc}",
-            )
+            for step, _ in self.STEPS:
+                if self._step_w[step]["ico"].cget("text") == "●":
+                    self._step(step, "error")
+            self._write(self._rep_box,
+                        f"ERROR\n{'─' * 34}\n{type(exc).__name__}: {exc}")
 
         finally:
-            self._start_btn.configure(state="normal")
+            self._run_btn.configure(state="normal")
 
 
 if __name__ == "__main__":
-    app = TrainingDashboard()
-    app.mainloop()
+    TrainingDashboard().mainloop()
