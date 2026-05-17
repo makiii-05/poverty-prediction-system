@@ -147,7 +147,7 @@
       }
     }
   },
-  "training_time_seconds": 3.1051595211029053,
+  "training_time_seconds": 3.327460527420044,
   "feature_names": [
     "year",
     "ave_income",
