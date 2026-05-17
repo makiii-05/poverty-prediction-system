@@ -18,18 +18,7 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 const app = express();
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (
-      !origin ||
-      origin.includes("localhost") ||
-      origin.includes("127.0.0.1") ||
-      origin.endsWith(".vercel.app") ||
-      origin === "https://poverty-prediction-system.vercel.app"
-    ) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
+  origin: true, // allow ALL origins temporarily
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
