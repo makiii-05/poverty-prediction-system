@@ -17,34 +17,17 @@ const forgotPasswordRoutes = require("./routes/forgotPasswordRoutes");
 
 const app = express();
 
-// CORS
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log("Request origin:", origin);
-
-    // Allow Postman/server-to-server requests
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    // Allow local frontend
     if (
+      !origin ||
       origin.includes("localhost") ||
-      origin.includes("127.0.0.1")
+      origin.includes("127.0.0.1") ||
+      origin.endsWith(".vercel.app") ||
+      origin === "https://poverty-prediction-system.vercel.app"
     ) {
       return callback(null, true);
     }
-
-    // Allow Vercel frontend URLs
-    if (origin.endsWith(".vercel.app")) {
-      return callback(null, true);
-    }
-
-    // Allow exact frontend URL from Render env
-    if (origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
-    }
-
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
