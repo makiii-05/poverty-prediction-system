@@ -50,7 +50,8 @@ export default function AuthModal({ isOpen, onClose }) {
 
     try {
       const data = await loginUser(loginForm.username, loginForm.password);
-
+      console.log("Login response:", data); // add this
+      console.log("User role:", data.user.role); // add this
       setLoginForm({
         username: "",
         password: "",

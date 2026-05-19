@@ -87,10 +87,12 @@ const UserController = {
 },
 
   logout: async (req, res) => {
-    res.clearCookie("token");
-    return res.status(200).json({
-      message: "Logged out successfully"
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
     });
+    return res.status(200).json({ message: "Logged out successfully" });
   },
 
   getProfile: async (req, res) => {
